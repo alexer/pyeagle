@@ -17,12 +17,8 @@ u2in = lambda val: val/2.54/100/1000
 def read_layers(f):
 	"""
 	The sections/whatever are 24 bytes long.
-	First byte is section type.
-	Second byte is some kind of further-sections-present-bit: (0x00 = not present, 0x80 = is present)
-	- 10/15: any symbols/packages/devices present at all?
-	- 17: devices present
-	- 18: symbols present
-	- 19: packages present
+	First byte is section type. Absolutely no idea what the second byte is, it seemed to be some kind of
+	further-sections-present-bit (0x00 = not present, 0x80 = is present) at first, but it clearly isn't.
 
 	Type 15: devices/symbols/packages
 	- contains 3 4-byte fields, each of which contains the number of entries in the next sections
