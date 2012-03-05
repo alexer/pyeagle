@@ -13,6 +13,24 @@ def dump_dec_hex_ascii(data):
 		print ' '.join(' %s ' % (byte if 32 <= ord(byte) <= 127 else '.',) for byte in data)
 		print
 
+pth_pad_flags = [
+	(0x01, None, 'stop'),
+	(0x04, None, 'thermals'),
+	(0x08, 'first', None),
+]
+
+def get_flags(value, flagdata):
+	result = []
+	for mask, true, false in flagdata:
+		if value & mask == mask:
+			value &= ~mask
+			name = true
+		else:
+			name = false
+		if name is not None:
+			result.append(name)
+	return result
+
 # Values are in tenths of a micrometre
 u2mm = lambda val: val/10/1000
 u2in = lambda val: val/2.54/100/1000
@@ -118,8 +136,8 @@ def read_layers(f):
 			layer, x1, y1, x2, y2, angle = struct.unpack('<biiiiH', data[3:-2])
 			print '- Rectangle from (%f", %f") to (%f", %f"), angle %f, layer %d' % (u2in(x1), u2in(y1), u2in(x2), u2in(y2), 360 * angle / 4096., layer)
 		elif data[0] == '\x2a':
-			x, y, hw, hd, angle = struct.unpack('<iiHHH', data[4:18])
-			print '- Pad at (%f", %f"), diameter %f", drill %f, angle %f"' % (u2in(x), u2in(y), u2in(hd*2), u2in(hw*2), 360 * angle / 4096.)
+			x, y, hw, hd, angle, flags = struct.unpack('<iiHHHB', data[4:19])
+			print '- Pad at (%f", %f"), diameter %f", drill %f, angle %f, flags: %s"' % (u2in(x), u2in(y), u2in(hd*2), u2in(hw*2), 360 * angle / 4096., ', '.join(get_flags(flags, pth_pad_flags)))
 
 	dump_hex_ascii(data)
 	assert data == '\x13\x12\x99\x19'
