@@ -70,7 +70,7 @@ def read_layers(f):
 			else:
 				cy = c
 				cx = (y3-cy)*(y2-y1)/float(x2-x1)+x3
-			print 'Arc center at:', cx/2.54, cy/2.54
+			print 'Arc center at (%f", %f")' % (u2in(cx), u2in(cy))
 			dump_hex_ascii(data[7::4])
 		elif data[0] == '\x25':
 			layer, x1, y1, r1, r2, hw = struct.unpack('<biiiiI', data[3:])
