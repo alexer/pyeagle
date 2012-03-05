@@ -1,6 +1,9 @@
 import sys
 import struct
 
+def dump_hex(data):
+	print ' '.join('%02x' % (ord(byte),) for byte in data)
+
 def dump_hex_ascii(data):
 	print ' '.join('%02x' % (ord(byte),) for byte in data), ''.join((byte if 32 <= ord(byte) < 127 else '.') for byte in data)
 
@@ -58,20 +61,37 @@ def read_layers(f):
 			side = 'bottom' if flags & 0x10 else 'top'
 			visible = {3: 0, 13: 0, 14: 1, 15: 1}[flags & (~0x10)]
 			print '- Layer: fill=%d, color=%d, name=%s, layer=%d, other=%d, side=%s, unknown_flags=%d, visible=%d' % (fill, color, name, layer, opposite_layer, side, flags, visible)
-		elif data[0] == '\x22':
-			layer, x1, y1, x2, y2, hw = struct.unpack('<bIIIII', data[3:])
-			c = struct.unpack('<I', data[7:20:4])[0]
-			x1, y1, x2, y2 = [val & 0xffffff for val in (x1, y1, x2, y2)]
-			print '- Line from (%f", %f") to (%f", %f"), width %f", layer %d' % (u2in(x1), u2in(y1), u2in(x2), u2in(y2), u2in(hw*2), layer)
-			x3, y3 = (x1+x2)/2., (y1+y2)/2.
-			if x2-x1 < y2-y1:
-				cx = c
-				cy = (x3-cx)*(x2-x1)/float(y2-y1)+y3
+		elif data[0] == '\x22': # Line or arc
+			# 4th byte is layer
+			# next 4 4-byte fields each contain 3 bytes of x1, y1, x2, y2 respectively
+			# for arcs, the 4th bytes of these fields combine to a 4-byte field whichs contains 3 bytes of c
+			# c is the x or y coordinate of the arc center point, depending on the slope of the line
+			# the 4th byte of c (or the 20th byte) contains flags which tell which of the fields are negative (two's complement)
+			# then comes two bytes, which contain the width of the line divided by two
+
+			# Extend 3-byte coordinate fields to 4 bytes, taking the negative-flags into account
+			negflags = ord(data[19])
+			ext = ['\xff' if negflags & (1 << i) else '\x00' for i in range(5)]
+			xydata = data[7:16:4] + ext[0] + data[4:7] + ext[1] + data[8:11] + ext[2] + data[12:15] + ext[3] + data[16:19] + ext[4]
+
+			c, x1, y1, x2, y2 = struct.unpack('<iiiii', xydata)
+			layer, hw, xxxa, arctype = struct.unpack('<bHBB', data[3] + data[20:24])
+
+			if not arctype:
+				print '- Line from (%f", %f") to (%f", %f"), width %f", layer %d' % (u2in(x1), u2in(y1), u2in(x2), u2in(y2), u2in(hw*2), layer)
 			else:
-				cy = c
-				cx = (y3-cy)*(y2-y1)/float(x2-x1)+x3
-			print 'Arc center at (%f", %f")' % (u2in(cx), u2in(cy))
-			dump_hex_ascii(data[7::4])
+				x3, y3 = (x1+x2)/2., (y1+y2)/2.
+				if abs(x2-x1) < abs(y2-y1):
+					cx = c
+					cy = (x3-cx)*(x2-x1)/float(y2-y1)+y3
+					xst, yst = '', '?'
+				else:
+					cy = c
+					cx = (y3-cy)*(y2-y1)/float(x2-x1)+x3
+					xst, yst = '?', ''
+				print '- Arc from (%f", %f") to (%f", %f"), center at (%f"%s, %f"%s), width %f", layer %d' % (u2in(x1), u2in(y1), u2in(x2), u2in(y2), u2in(cx), xst, u2in(cy), yst, u2in(hw*2), layer)
+			dump_hex(data[1:3] + data[19] + data[-2:])
+			dump_hex(data[7::4])
 		elif data[0] == '\x25':
 			layer, x1, y1, r1, r2, hw = struct.unpack('<biiiiI', data[3:])
 			assert r1 == r2
