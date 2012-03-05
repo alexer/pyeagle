@@ -85,7 +85,7 @@ def read_layers(f):
 		#0x2b = smd pad
 		#0x28 = hole
 		#0x31 = text
-		if False:#data[0] == '\x13':
+		if data[0] == '\x13':
 			c1, c2, flags, layer, opposite_layer, fill, color = struct.unpack('BBBBBBB', data[:7])
 			name = data[15:].strip('\x00')
 			assert c1 == 0x13
@@ -94,6 +94,22 @@ def read_layers(f):
 			side = 'bottom' if flags & 0x10 else 'top'
 			visible = {3: 0, 13: 0, 14: 1, 15: 1}[flags & (~0x10)]
 			print '- Layer: fill=%d, color=%d, name=%s, layer=%d, other=%d, side=%s, unknown_flags=%d, visible=%d' % (fill, color, name, layer, opposite_layer, side, flags, visible)
+		elif data[0] == '\x15':
+			print '- Devices/symbols/packages'
+		elif data[0] == '\x17':
+			print '- Devices'
+		elif data[0] == '\x18':
+			print '- Symbols'
+		elif data[0] == '\x19':
+			print '- Packages'
+		elif data[0] == '\x1d':
+			print '- Symbol'
+		elif data[0] == '\x1e':
+			print '- Package'
+		elif data[0] == '\x37':
+			print '- Device'
+		elif data[0] == '\x36':
+			print '- Device/ext??'
 		elif data[0] == '\x22': # Line or arc
 			# 4th byte is layer
 			# next 4 4-byte fields each contain 3 bytes of x1, y1, x2, y2 respectively
