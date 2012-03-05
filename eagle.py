@@ -76,12 +76,13 @@ def read_layers(f):
 			assert arctype in (0x00, 0x81, 0x7e, 0x7f), 'Unknown arc type: ' + hex(arctype)
 
 			# Status flags; 0x20 == positive curve value
+			# Cap style and positive curve are present on bare lines too, that's probably a bug
 			style = {0x00: 'continuous', 0x01: 'longdash', 0x02: 'shortdash', 0x03: 'dashdot'}[stflags & 0x03]
 			cap = {0x00: 'round', 0x10: 'flat'}[stflags & 0x10]
 
 			if not arctype:
 				x1, y1, x2, y2 = struct.unpack('<iiii', data[4:20])
-				print '- Line from (%f", %f") to (%f", %f"), width %f", layer %d' % (u2in(x1), u2in(y1), u2in(x2), u2in(y2), u2in(hw*2), layer)
+				print '- Line from (%f", %f") to (%f", %f"), width %f", layer %d, style %s' % (u2in(x1), u2in(y1), u2in(x2), u2in(y2), u2in(hw*2), layer, style)
 			else:
 				# Extend 3-byte coordinate fields to 4 bytes, taking the negative-flags into account
 				negflags = ord(data[19])
