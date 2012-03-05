@@ -133,7 +133,7 @@ def read_layers(f):
 			if not arctype:
 				x1, y1, x2, y2 = struct.unpack('<iiii', data[4:20])
 				print '- Line from (%f", %f") to (%f", %f"), width %f", layer %d, style %s' % (u2in(x1), u2in(y1), u2in(x2), u2in(y2), u2in(hw*2), layer, style)
-			else:
+			elif arctype == 0x81:
 				# Extend 3-byte coordinate fields to 4 bytes, taking the negative-flags into account
 				negflags = ord(data[19])
 				ext = ['\xff' if negflags & (1 << i) else '\x00' for i in range(5)]
@@ -152,6 +152,11 @@ def read_layers(f):
 					cx = (y3-cy)*(y2-y1)/float(x2-x1)+x3
 					xst, yst = '?', ''
 				print '- Arc from (%f", %f") to (%f", %f"), center at (%f"%s, %f"%s), width %f", layer %d, style %s, cap %s' % (u2in(x1), u2in(y1), u2in(x2), u2in(y2), u2in(cx), xst, u2in(cy), yst, u2in(hw*2), layer, style, cap)
+			else:
+				arctypestr = {0x78: '90 downleft', 0x79: '90 downright', 0x7a: '90 upright', 0x7b: '90 upleft', 0x7c: '180 left', 0x7d: '180 right', 0x7e: '180 down', 0x7f: '180 up'}[arctype]
+				x1, y1, x2, y2 = struct.unpack('<iiii', data[4:20])
+				print '- Arc from (%f", %f") to (%f", %f"), type %s, width %f", layer %d, style %s, cap %s' % (u2in(x1), u2in(y1), u2in(x2), u2in(y2), arctypestr, u2in(hw*2), layer, style, cap)
+
 			dump_hex(data[1:3])
 			dump_hex(data[7::4])
 		elif data[0] == '\x25':
