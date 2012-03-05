@@ -108,6 +108,9 @@ def read_layers(f):
 			layer, x1, y1, r1, r2, hw = struct.unpack('<biiiiI', data[3:])
 			assert r1 == r2
 			print '- Circle at (%f", %f"), radius %f", width %f", layer %d' % (u2in(x1), u2in(y1), u2in(r1), u2in(hw*2), layer)
+		elif data[0] == '\x26':
+			layer, x1, y1, x2, y2, angle = struct.unpack('<biiiiH', data[3:-2])
+			print '- Rectangle from (%f", %f") to (%f", %f"), angle %f, layer %d' % (u2in(x1), u2in(y1), u2in(x2), u2in(y2), 360 * angle / 4096., layer)
 
 	dump_hex_ascii(data)
 	assert data == '\x13\x12\x99\x19'
