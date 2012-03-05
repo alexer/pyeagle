@@ -85,9 +85,13 @@ def read_layers(f):
 		#0x2b = smd pad
 		#0x28 = hole
 		#0x31 = text
-		if data[0] == '\x13':
+		if data[0] == '\x10':
+			section_count = struct.unpack('<I', data[4:8])[0]
+			end_offset = section_count * 24
+			init_names(f, end_offset)
+		elif data[0] == '\x13':
 			c1, c2, flags, layer, opposite_layer, fill, color = struct.unpack('BBBBBBB', data[:7])
-			name = data[15:].strip('\x00')
+			name = get_name(data[15:])
 			assert c1 == 0x13
 			assert c2 == 0x00
 			assert data[7:15] == 8*'\x00'
@@ -96,21 +100,21 @@ def read_layers(f):
 			visible = {2: 0, 3: 0, 13: 0, 14: 1, 15: 1}[flags & (~0x10)]
 			print '- Layer: fill=%d, color=%d, name=%s, layer=%d, other=%d, side=%s, unknown_flags=%d, visible=%d' % (fill, color, name, layer, opposite_layer, side, flags, visible)
 		elif data[0] == '\x15':
-			print '- Devices/symbols/packages'
+			print '- Devices/symbols/packages:', get_name(data[16:])
 		elif data[0] == '\x17':
-			print '- Devices'
+			print '- Devices:', get_name(data[16:])
 		elif data[0] == '\x18':
-			print '- Symbols'
+			print '- Symbols:', get_name(data[16:])
 		elif data[0] == '\x19':
-			print '- Packages'
+			print '- Packages:', get_name(data[16:]), get_name(data[10:16])
 		elif data[0] == '\x1d':
-			print '- Symbol'
+			print '- Symbol:', get_name(data[16:])
 		elif data[0] == '\x1e':
-			print '- Package'
+			print '- Package:', get_name(data[18:]), get_name(data[13:18])
 		elif data[0] == '\x37':
-			print '- Device'
+			print '- Device:', get_name(data[18:]), get_name(data[8:13]), get_name(data[13:18])
 		elif data[0] == '\x36':
-			print '- Device/ext??'
+			print '- Device/ext??:', get_name(data[19:]), get_name(data[6:12])
 		elif data[0] == '\x22': # Line or arc
 			# 4th byte is layer
 			# next 4 4-byte fields each contain 3 bytes of x1, y1, x2, y2 respectively
@@ -157,21 +161,21 @@ def read_layers(f):
 				x1, y1, x2, y2 = struct.unpack('<iiii', data[4:20])
 				print '- Arc from (%f", %f") to (%f", %f"), type %s, width %f", layer %d, style %s, cap %s' % (u2in(x1), u2in(y1), u2in(x2), u2in(y2), arctypestr, u2in(hw*2), layer, style, cap)
 
-			dump_hex(data[1:3])
-			dump_hex(data[7::4])
+			#dump_hex(data[1:3])
+			#dump_hex(data[7::4])
 		elif data[0] == '\x25':
-			layer, x1, y1, r1, r2, hw = struct.unpack('<biiiiI', data[3:])
-			assert r1 == r2
+			layer, x1, y1, r1, xxx, hw = struct.unpack('<biiiiI', data[3:])
+			#assert r1 == xxx # Almost always the same...
 			print '- Circle at (%f", %f"), radius %f", width %f", layer %d' % (u2in(x1), u2in(y1), u2in(r1), u2in(hw*2), layer)
 		elif data[0] == '\x26':
 			layer, x1, y1, x2, y2, angle = struct.unpack('<biiiiH', data[3:-2])
 			print '- Rectangle from (%f", %f") to (%f", %f"), angle %f, layer %d' % (u2in(x1), u2in(y1), u2in(x2), u2in(y2), 360 * angle / 4096., layer)
 		elif data[0] == '\x2a':
 			x, y, hw, hd, angle, flags = struct.unpack('<iiHHHB', data[4:19])
-			print '- Pad at (%f", %f"), diameter %f", drill %f, angle %f, flags: %s"' % (u2in(x), u2in(y), u2in(hd*2), u2in(hw*2), 360 * angle / 4096., ', '.join(get_flags(flags, pth_pad_flags)))
+			print '- Pad at (%f", %f"), diameter %f", drill %f, angle %f, flags: %s, name %s"' % (u2in(x), u2in(y), u2in(hd*2), u2in(hw*2), 360 * angle / 4096., ', '.join(get_flags(flags, pth_pad_flags)), get_name(data[19:]))
 		elif data[0] == '\x2b':
 			roundness, layer, x, y, hw, hh, angle, flags = struct.unpack('<BBiiHHHB', data[2:19])
-			print '- SMD pad at (%f", %f") size %f" x %f", angle %f, layer %d, roundness %d%%, flags: %s' % (u2in(x), u2in(y), u2in(hw*2), u2in(hh*2), 360 * angle / 4096., layer, roundness, ', '.join(get_flags(flags, smd_pad_flags)))
+			print '- SMD pad at (%f", %f") size %f" x %f", angle %f, layer %d, roundness %d%%, flags: %s, name %s' % (u2in(x), u2in(y), u2in(hw*2), u2in(hh*2), 360 * angle / 4096., layer, roundness, ', '.join(get_flags(flags, smd_pad_flags)), get_name(data[19:]))
 		elif data[0] == '\x28':
 			x, y, hw = struct.unpack('<iiI', data[4:16])
 			print '- Hole at (%f", %f") drill %f"' % (u2in(x), u2in(y), u2in(hw*2))
@@ -179,14 +183,42 @@ def read_layers(f):
 			layer, x, y, hs, xxx, angle = struct.unpack('<BiiHHH', data[3:18])
 			ratio = (xxx >> 2) & 0x1f
 			# angle & 0x4000 => spin, no idea what that does though..
-			print '- Text at (%f", %f") size %f", angle %f, layer %d, ratio %d%%' % (u2in(x), u2in(y), u2in(hs*2), 360 * (angle & 0xfff) / 4096., layer, ratio)
+			print '- Text at (%f", %f") size %f", angle %f, layer %d, ratio %d%%, text %s' % (u2in(x), u2in(y), u2in(hs*2), 360 * (angle & 0xfff) / 4096., layer, ratio, get_name(data[18:]))
+		elif data[0] == '\x2d':
+			print '- ???:', get_name(data[16:])
+		elif data[0] == '\x2c':
+			print '- ???:', get_name(data[14:])
 
 	dump_hex_ascii(data)
 	assert data == '\x13\x12\x99\x19'
 
+_names = None
+def init_names(f, end_offset):
+	global _names
+	pos = f.tell()
+	f.seek(end_offset)
+	assert f.read(4) == '\x13\x12\x99\x19'
+	size = struct.unpack('<I', f.read(4))[0]
+	_names = f.read(size).split('\x00')
+	f.seek(pos)
+
+_nameind = 0
+def get_next_name():
+	global _names, _nameind
+	name = _names[_nameind]
+	_nameind += 1
+	return name
+
+def get_name(name):
+	if name[0] != '\x7f':
+		return '\x1b[32m' + repr(name.rstrip('\x00')) + '\x1b[m'
+	return '\x1b[31m' + repr(get_next_name()) + '\x1b[m'
+
 def read_name_array(f):
 	size = struct.unpack('<I', f.read(4))[0]
-	print size, f.read(size).split('\x00')
+	strings = f.read(size).split('\x00')
+	for i, value in enumerate(strings):
+		print i, repr(value)
 
 with file(sys.argv[1]) as f:
 	#data = f.read(6*16)
@@ -195,4 +227,6 @@ with file(sys.argv[1]) as f:
 	read_layers(f)
 	read_name_array(f)
 	dump_hex_ascii(f.read())
+
+print _nameind
 
