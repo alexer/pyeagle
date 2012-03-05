@@ -93,11 +93,11 @@ def read_layers(f):
 			c1, c2, flags, layer, opposite_layer, fill, color = struct.unpack('BBBBBBB', data[:7])
 			name = get_name(data[15:])
 			assert c1 == 0x13
-			assert c2 == 0x00
+			assert c2 in (0x00, 0x80)
 			assert data[7:15] == 8*'\x00'
 			side = 'bottom' if flags & 0x10 else 'top'
 			# This might be way off
-			visible = {2: 0, 3: 0, 13: 0, 14: 1, 15: 1}[flags & (~0x10)]
+			visible = {1: 0, 2: 0, 3: 0, 13: 0, 14: 1, 15: 1}[flags & (~0x10)]
 			print '- Layer: fill=%d, color=%d, name=%s, layer=%d, other=%d, side=%s, unknown_flags=%d, visible=%d' % (fill, color, name, layer, opposite_layer, side, flags, visible)
 		elif data[0] == '\x15':
 			print '- Devices/symbols/packages:', get_name(data[16:])
