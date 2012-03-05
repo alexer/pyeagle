@@ -68,6 +68,7 @@ def read_layers(f):
 			# c is the x or y coordinate of the arc center point, depending on the slope of the line
 			# the 4th byte of c (or the 20th byte) contains flags which tell which of the fields are negative (two's complement)
 			# then comes two bytes, which contain the width of the line divided by two
+			# next (second to last) byte contains some flags about the style of the arc
 
 			# Extend 3-byte coordinate fields to 4 bytes, taking the negative-flags into account
 			negflags = ord(data[19])
@@ -75,7 +76,15 @@ def read_layers(f):
 			xydata = data[7:16:4] + ext[0] + data[4:7] + ext[1] + data[8:11] + ext[2] + data[12:15] + ext[3] + data[16:19] + ext[4]
 
 			c, x1, y1, x2, y2 = struct.unpack('<iiiii', xydata)
-			layer, hw, xxxa, arctype = struct.unpack('<bHBB', data[3] + data[20:24])
+			layer, hw, stflags, arctype = struct.unpack('<bHBB', data[3] + data[20:24])
+
+			assert negflags & 0xe0 == 0, 'Unknown bits set in negation flags: ' + hex(negflags & 0xe0)
+			assert stflags & 0xcc == 0, 'Unknown bits set in style flags: ' + hex(stflags & 0xcc)
+			assert arctype in (0x00, 0x81, 0x7e, 0x7f), 'Unknown arc type: ' + hex(arctype)
+
+			# Status flags; 0x20 == positive curve value
+			style = {0x00: 'continuous', 0x01: 'longdash', 0x02: 'shortdash', 0x03: 'dashdot'}[stflags & 0x03]
+			cap = {0x00: 'round', 0x10: 'flat'}[stflags & 0x10]
 
 			if not arctype:
 				print '- Line from (%f", %f") to (%f", %f"), width %f", layer %d' % (u2in(x1), u2in(y1), u2in(x2), u2in(y2), u2in(hw*2), layer)
@@ -89,8 +98,8 @@ def read_layers(f):
 					cy = c
 					cx = (y3-cy)*(y2-y1)/float(x2-x1)+x3
 					xst, yst = '?', ''
-				print '- Arc from (%f", %f") to (%f", %f"), center at (%f"%s, %f"%s), width %f", layer %d' % (u2in(x1), u2in(y1), u2in(x2), u2in(y2), u2in(cx), xst, u2in(cy), yst, u2in(hw*2), layer)
-			dump_hex(data[1:3] + data[19] + data[-2:])
+				print '- Arc from (%f", %f") to (%f", %f"), center at (%f"%s, %f"%s), width %f", layer %d, style %s, cap %s' % (u2in(x1), u2in(y1), u2in(x2), u2in(y2), u2in(cx), xst, u2in(cy), yst, u2in(hw*2), layer, style, cap)
+			dump_hex(data[1:3])
 			dump_hex(data[7::4])
 		elif data[0] == '\x25':
 			layer, x1, y1, r1, r2, hw = struct.unpack('<biiiiI', data[3:])
