@@ -92,7 +92,8 @@ def read_layers(f):
 			assert c2 == 0x00
 			assert data[7:15] == 8*'\x00'
 			side = 'bottom' if flags & 0x10 else 'top'
-			visible = {3: 0, 13: 0, 14: 1, 15: 1}[flags & (~0x10)]
+			# This might be way off
+			visible = {2: 0, 3: 0, 13: 0, 14: 1, 15: 1}[flags & (~0x10)]
 			print '- Layer: fill=%d, color=%d, name=%s, layer=%d, other=%d, side=%s, unknown_flags=%d, visible=%d' % (fill, color, name, layer, opposite_layer, side, flags, visible)
 		elif data[0] == '\x15':
 			print '- Devices/symbols/packages'
@@ -122,7 +123,7 @@ def read_layers(f):
 			layer, hw, stflags, arctype = struct.unpack('<bHBB', data[3] + data[20:24])
 
 			assert stflags & 0xcc == 0, 'Unknown bits set in style flags: ' + hex(stflags & 0xcc)
-			assert arctype in (0x00, 0x81, 0x7e, 0x7f, 0x7b, 0x79, 0x78, 0x7a), 'Unknown arc type: ' + hex(arctype)
+			assert arctype in (0x00, 0x81, 0x7e, 0x7f, 0x7b, 0x79, 0x78, 0x7a, 0x7d, 0x7c), 'Unknown arc type: ' + hex(arctype)
 
 			# Status flags; 0x20 == positive curve value
 			# Cap style and positive curve are present on bare lines too, that's probably a bug
