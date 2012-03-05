@@ -83,6 +83,7 @@ def read_layers(f):
 		#0x26 = rectangle
 		#0x2a = pad
 		#0x2b = smd pad
+		#0x28 = hole
 		if False:#data[0] == '\x13':
 			c1, c2, flags, layer, opposite_layer, fill, color = struct.unpack('BBBBBBB', data[:7])
 			name = data[15:].strip('\x00')
@@ -148,6 +149,9 @@ def read_layers(f):
 		elif data[0] == '\x2b':
 			roundness, layer, x, y, hw, hh, angle, flags = struct.unpack('<BBiiHHHB', data[2:19])
 			print '- SMD pad at (%f", %f") size %f" x %f", angle %f, layer %d, roundness %d%%, flags: %s' % (u2in(x), u2in(y), u2in(hw*2), u2in(hh*2), 360 * angle / 4096., layer, roundness, ', '.join(get_flags(flags, smd_pad_flags)))
+		elif data[0] == '\x28':
+			x, y, hw = struct.unpack('<iiI', data[4:16])
+			print '- Hole at (%f", %f") drill %f"' % (u2in(x), u2in(y), u2in(hw*2))
 
 	dump_hex_ascii(data)
 	assert data == '\x13\x12\x99\x19'
