@@ -63,11 +63,11 @@ def read_layers(f):
 			visible = {3: 0, 13: 0, 14: 1, 15: 1}[flags & (~0x10)]
 			print '- Layer: fill=%d, color=%d, name=%s, layer=%d, other=%d, side=%s, unknown_flags=%d, visible=%d' % (fill, color, name, layer, opposite_layer, side, flags, visible)
 		elif data[0] == '\x22':
-			layer, x1, y1, x2, y2, hw = struct.unpack('<biIIiI', data[3:])
+			layer, x1, y1, x2, y2, hw = struct.unpack('<biiiiI', data[3:])
 			print '- Line from (%f", %f") to (%f", %f"), width %f", layer %d' % (u2in(x1), u2in(y1), u2in(x2), u2in(y2), u2in(hw*2), layer)
 			dump_hex_ascii(data[7::4])
 		elif data[0] == '\x25':
-			layer, x1, y1, r1, r2, hw = struct.unpack('<biIIiI', data[3:])
+			layer, x1, y1, r1, r2, hw = struct.unpack('<biiiiI', data[3:])
 			assert r1 == r2
 			print '- Circle at (%f", %f"), radius %f", width %f", layer %d' % (u2in(x1), u2in(y1), u2in(r1), u2in(hw*2), layer)
 
