@@ -170,6 +170,9 @@ def read_layers(f):
 		elif data[0] == '\x26':
 			layer, x1, y1, x2, y2, angle = struct.unpack('<biiiiH', data[3:-2])
 			print '- Rectangle from (%f", %f") to (%f", %f"), angle %f, layer %d' % (u2in(x1), u2in(y1), u2in(x2), u2in(y2), 360 * angle / 4096., layer)
+		elif data[0] == '\x21':
+			hw, hs, xxx, layer, flags = struct.unpack('<HHHBB', data[12:20])
+			print '- Polygon, width %f", spacing %f", pour %s, layer %d' % (u2in(hw*2), u2in(hs*2), 'hatch' if flags & 0x01 else 'solid', layer)
 		elif data[0] == '\x2a':
 			x, y, hw, hd, angle, flags = struct.unpack('<iiHHHB', data[4:19])
 			print '- Pad at (%f", %f"), diameter %f", drill %f, angle %f, flags: %s, name %s"' % (u2in(x), u2in(y), u2in(hd*2), u2in(hw*2), 360 * angle / 4096., ', '.join(get_flags(flags, pth_pad_flags)), get_name(data[19:]))
