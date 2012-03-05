@@ -89,6 +89,10 @@ def read_layers(f):
 			section_count = struct.unpack('<I', data[4:8])[0]
 			end_offset = section_count * 24
 			init_names(f, end_offset)
+		elif data[0] == '\x11':
+			print '- ???'
+		elif data[0] == '\x12':
+			print '- ???'
 		elif data[0] == '\x13':
 			c1, c2, flags, layer, opposite_layer, fill, color = struct.unpack('BBBBBBB', data[:7])
 			name = get_name(data[15:])
@@ -191,6 +195,10 @@ def read_layers(f):
 			print '- ???:', get_name(data[16:])
 		elif data[0] == '\x2c':
 			print '- ???:', get_name(data[14:])
+		elif data[0] == '\x3c':
+			print '- Device/???'
+		else:
+			raise ValueError, 'Unknown section type'
 
 	dump_hex_ascii(data)
 	assert data == '\x13\x12\x99\x19'
