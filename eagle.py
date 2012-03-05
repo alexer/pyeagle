@@ -84,6 +84,7 @@ def read_layers(f):
 		#0x2a = pad
 		#0x2b = smd pad
 		#0x28 = hole
+		#0x31 = text
 		if False:#data[0] == '\x13':
 			c1, c2, flags, layer, opposite_layer, fill, color = struct.unpack('BBBBBBB', data[:7])
 			name = data[15:].strip('\x00')
@@ -152,6 +153,11 @@ def read_layers(f):
 		elif data[0] == '\x28':
 			x, y, hw = struct.unpack('<iiI', data[4:16])
 			print '- Hole at (%f", %f") drill %f"' % (u2in(x), u2in(y), u2in(hw*2))
+		elif data[0] == '\x31':
+			layer, x, y, hs, xxx, angle = struct.unpack('<BiiHHH', data[3:18])
+			ratio = (xxx >> 2) & 0x1f
+			# angle & 0x4000 => spin, no idea what that does though..
+			print '- Text at (%f", %f") size %f", angle %f, layer %d, ratio %d%%' % (u2in(x), u2in(y), u2in(hs*2), 360 * (angle & 0xfff) / 4096., layer, ratio)
 
 	dump_hex_ascii(data)
 	assert data == '\x13\x12\x99\x19'
