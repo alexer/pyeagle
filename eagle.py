@@ -57,6 +57,7 @@ def read_layers(f):
 		#0x22 = line/arc
 		#0x25 = circle
 		#0x26 = rectangle
+		#0x2a = pad
 		if False:#data[0] == '\x13':
 			c1, c2, flags, layer, opposite_layer, fill, color = struct.unpack('BBBBBBB', data[:7])
 			name = data[15:].strip('\x00')
@@ -116,6 +117,9 @@ def read_layers(f):
 		elif data[0] == '\x26':
 			layer, x1, y1, x2, y2, angle = struct.unpack('<biiiiH', data[3:-2])
 			print '- Rectangle from (%f", %f") to (%f", %f"), angle %f, layer %d' % (u2in(x1), u2in(y1), u2in(x2), u2in(y2), 360 * angle / 4096., layer)
+		elif data[0] == '\x2a':
+			x, y, hw, hd, angle = struct.unpack('<iiHHH', data[4:18])
+			print '- Pad at (%f", %f"), diameter %f", drill %f, angle %f"' % (u2in(x), u2in(y), u2in(hd*2), u2in(hw*2), 360 * angle / 4096.)
 
 	dump_hex_ascii(data)
 	assert data == '\x13\x12\x99\x19'
