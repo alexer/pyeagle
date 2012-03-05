@@ -213,6 +213,13 @@ def get_next_name():
 	return name
 
 def get_name(name):
+	# Apparently there is no better way to do this..
+	# There are some random bytes after 0x7f, but that's just what they are - random
+	# Making a text longer, then shorter again does not result in the same random bytes
+	# Making a text from the beginning longer does not affect the random bytes of the following entries
+	# Deleting a text from the beginning does not affect the random bytes of the following entries
+	# Thus, there really can't be any position information there
+	# Thus, we'd just better handle every possible text field...
 	if name[0] != '\x7f':
 		return '\x1b[32m' + repr(name.rstrip('\x00')) + '\x1b[m'
 	return '\x1b[31m' + repr(get_next_name()) + '\x1b[m'
