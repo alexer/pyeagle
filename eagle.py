@@ -203,7 +203,7 @@ def read_layers(f):
 		elif data[0] == '\x2a':
 			x, y, hw, hd, angle, flags = struct.unpack('<iiHHHB', data[4:19])
 			name = get_name(data[19:])
-			print '- Pad at (%f", %f"), diameter %f", drill %f, angle %f, flags: %s, name %s"' % (u2in(x), u2in(y), u2in(hd*2), u2in(hw*2), 360 * angle / 4096., ', '.join(get_flags(flags, pth_pad_flags)), name)
+			print '- Pad at (%f", %f"), diameter %f", drill %f", angle %f, flags: %s, name %s' % (u2in(x), u2in(y), u2in(hd*2), u2in(hw*2), 360 * angle / 4096., ', '.join(get_flags(flags, pth_pad_flags)), name)
 		elif data[0] == '\x2b':
 			roundness, layer, x, y, hw, hh, angle, flags = struct.unpack('<BBiiHHHB', data[2:19])
 			name = get_name(data[19:])
