@@ -212,6 +212,9 @@ def init_names(f, end_offset):
 	size = struct.unpack('<I', f.read(4))[0]
 	_names = f.read(size).split('\x00')
 	f.seek(pos)
+	assert _names[-2:] == ['', '']
+	_names.pop()
+	_names.pop()
 
 _nameind = 0
 def get_next_name():
@@ -246,5 +249,5 @@ with file(sys.argv[1]) as f:
 	read_name_array(f)
 	dump_hex_ascii(f.read())
 
-print _nameind
+assert _nameind == len(_names)
 
