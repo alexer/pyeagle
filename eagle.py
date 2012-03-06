@@ -127,7 +127,8 @@ def read_layers(f):
 			pin_bits = ord(data[7]) & 0xf
 			print '- Device:', get_name(data[18:]), get_name(data[8:13]), get_name(data[13:18])
 		elif data[0] == '\x36':
-			print '- Device/ext??:', get_name(data[19:]), get_name(data[6:12])
+			pacno = struct.unpack('<H', data[4:6])[0]
+			print '- Device/Package %d' % pacno, get_name(data[19:]), get_name(data[6:12])
 		elif data[0] == '\x22': # Line or arc
 			# 4th byte is layer
 			# next 4 4-byte fields each contain 3 bytes of x1, y1, x2, y2 respectively
@@ -201,8 +202,8 @@ def read_layers(f):
 			# angle & 0x4000 => spin, no idea what that does though..
 			print '- Text at (%f", %f") size %f", angle %f, layer %d, ratio %d%%, text %s' % (u2in(x), u2in(y), u2in(hs*2), 360 * (angle & 0xfff) / 4096., layer, ratio, get_name(data[18:]))
 		elif data[0] == '\x2d':
-			x, y = struct.unpack('<ii', data[4:12])
-			print '- Device/Symbol at (%f", %f"), name %s' % (u2in(x), u2in(y), get_name(data[16:]))
+			x, y, xxx, symno = struct.unpack('<iiHH', data[4:16])
+			print '- Device/Symbol %d at (%f", %f"), name %s' % (symno, u2in(x), u2in(y), get_name(data[16:]))
 		elif data[0] == '\x2c':
 			flags1, zero, x, y, flags2, swaplevel = struct.unpack('<BBiiBB', data[2:14])
 			assert flags1 & 0x3c == 0x00, 'Unknown flag bits: %s' % hex(flags1 & 0x3c)
