@@ -55,6 +55,8 @@ def read_layers(f):
 	- contains 2 4-byte fields, which are probably the same as above
 	Type 19: packages
 	"""
+	con_byte = None
+	pin_bits = None
 	while True:
 		data = f.read(4)
 		if not data:
@@ -121,6 +123,8 @@ def read_layers(f):
 		elif data[0] == '\x1e':
 			print '- Package:', get_name(data[18:]), get_name(data[13:18])
 		elif data[0] == '\x37':
+			con_byte = (ord(data[7]) & 0x80) >> 7
+			pin_bits = ord(data[7]) & 0xf
 			print '- Device:', get_name(data[18:]), get_name(data[8:13]), get_name(data[13:18])
 		elif data[0] == '\x36':
 			print '- Device/ext??:', get_name(data[19:]), get_name(data[6:12])
@@ -215,7 +219,12 @@ def read_layers(f):
 			# - Slots have two numbers
 			#   - First corresponds to symbol number
 			#   - Second corresponds to symbol pin number
-			print '- Device/Connections'
+			fmt = '<' + ('22B' if con_byte else '11H')
+			slots = struct.unpack(fmt, data[2:])
+			#for slot in slots:
+			#	sym = slot >> pin_bits
+			#	pin = slot & ((1 << pin_bits) - 1)
+			print '- Device/Connections:', [(slot >> pin_bits, slot & ((1 << pin_bits) - 1)) for slot in slots if slot]
 		else:
 			raise ValueError, 'Unknown section type'
 
