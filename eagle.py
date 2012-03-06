@@ -233,6 +233,23 @@ def read_layers(f):
 			print '- Schema'
 		elif data[0] == '\x1b':
 			print '- Board'
+		elif data[0] == '\x38':
+			subsecs, xxx2, symno, xxx3, xxx4 = struct.unpack('<HHHBH', data[2:11])
+			print '- Schema/symbol %d, name %s, value %s' % (symno, get_name(data[11:16]), get_name(data[16:]))
+		elif data[0] == '\x30':
+			subsecs, x, y = struct.unpack('<Hii', data[2:12])
+			flags1 = ord(data[17])
+			flags2 = ord(data[18])
+			angle = '0 90 180 270'.split()[(flags1 & 0x0c) >> 2]
+			smashed = (flags2 & 0x01) == 0x01
+			print '- Schema/symbol at (%f", %f"), angle %s, smashed %s' % (u2in(x), u2in(y), angle, smashed)
+		elif data[0] in ('\x35', '\x34'):
+			font, layer, x, y, hs, xxx, angle = struct.unpack('<BBiiHHH', data[2:18])
+			font = 'vector proportional fixed'.split()[font]
+			ratio = (xxx >> 2) & 0x1f
+			angle = '0 90 180 270'.split()[(angle & 0x0c00) >> 10]
+			title = {'\x35': 'value', '\x34': 'name'}[data[0]]
+			print '- Smashed %s at (%f", %f") size %f", angle %s, layer %d, ratio %d%%, font %s' % (title, u2in(x), u2in(y), u2in(hs*2), angle, layer, ratio, font)
 		else:
 			raise ValueError, 'Unknown section type'
 
