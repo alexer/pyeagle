@@ -226,6 +226,12 @@ def read_layers(f):
 			#	sym = slot >> pin_bits
 			#	pin = slot & ((1 << pin_bits) - 1)
 			print '- Device/Connections:', [(slot >> pin_bits, slot & ((1 << pin_bits) - 1)) for slot in slots if slot]
+		elif data[0] == '\x14':
+			print '- Xref format:', get_name(data[19:24])
+		elif data[0] == '\x1a':
+			print '- Schema'
+		elif data[0] == '\x1b':
+			print '- Board'
 		else:
 			raise ValueError, 'Unknown section type'
 
@@ -269,6 +275,12 @@ def read_name_array(f):
 	strings = f.read(size).split('\x00')
 	for i, value in enumerate(strings):
 		print i, repr(value)
+	checksum = f.read(4)
+
+sentinels = {
+	'\x25\x04\x00\x20': '\xef\xcd\xab\x89',
+	'\x10\x04\x00\x20': '\x98\xba\xdc\xfe',
+}
 
 with file(sys.argv[1]) as f:
 	#data = f.read(6*16)
@@ -276,7 +288,24 @@ with file(sys.argv[1]) as f:
 
 	read_layers(f)
 	read_name_array(f)
-	dump_hex_ascii(f.read())
+	while True:
+		start_sentinel = f.read(4)
+		if not start_sentinel:
+			raise Exception, 'EOF'
+		if start_sentinel == '\x99\x99\x99\x99':
+			assert f.read(4) == '\x00\x00\x00\x00'
+			break
+		end_sentinel = sentinels[start_sentinel]
+		length = struct.unpack('<I', f.read(4))[0] - 4
+		data = f.read(length)
+		print 'Extra:', repr(data)
+		assert f.read(4) == end_sentinel
+		checksum = f.read(4)
+
+	rest = f.read()
+	if rest:
+		print 'Extra data:'
+		dump_hex_ascii(rest)
 
 assert _nameind == len(_names)
 
