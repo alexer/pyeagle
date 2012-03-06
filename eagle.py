@@ -199,7 +199,15 @@ def read_layers(f):
 		elif data[0] == '\x2d':
 			print '- ???:', get_name(data[16:])
 		elif data[0] == '\x2c':
-			print '- ???:', get_name(data[14:])
+			flags1, zero, x, y, flags2, swaplevel = struct.unpack('<BBiiBB', data[2:14])
+			assert flags1 & 0x3c == 0x00, 'Unknown flag bits: %s' % hex(flags1 & 0x3c)
+			assert zero == 0x00, 'Unknown data: %s' % hex(zero)
+			function = 'None Dot Clk DotClk'.split()[flags1 & 0x03]
+			visible = 'Off Pad Pin Both'.split()[(flags1 & 0xc0) >> 6]
+			direction = 'Nc In Out I/O OC Pwr Pas Hiz Sup'.split()[flags2 & 0x0f]
+			length = 'Point Short Middle Long'.split()[(flags2 & 0x30) >> 4]
+			angle = '0 90 180 270'.split()[(flags2 & 0xc0) >> 6]
+			print '- Pin at (%f", %f"), name %s, angle %s, direction %s, swaplevel %s, length %s, function %s, visible %s' % (u2in(x), u2in(y), get_name(data[14:]), angle, direction, swaplevel, length, function, visible)
 		elif data[0] == '\x3c':
 			print '- Device/???'
 		else:
