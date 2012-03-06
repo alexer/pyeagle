@@ -197,10 +197,11 @@ def read_layers(f):
 			x, y, hw = struct.unpack('<iiI', data[4:16])
 			print '- Hole at (%f", %f") drill %f"' % (u2in(x), u2in(y), u2in(hw*2))
 		elif data[0] == '\x31':
-			layer, x, y, hs, xxx, angle = struct.unpack('<BiiHHH', data[3:18])
+			font, layer, x, y, hs, xxx, angle = struct.unpack('<BBiiHHH', data[2:18])
+			font = 'vector proportional fixed'.split()[font]
 			ratio = (xxx >> 2) & 0x1f
 			# angle & 0x4000 => spin, no idea what that does though..
-			print '- Text at (%f", %f") size %f", angle %f, layer %d, ratio %d%%, text %s' % (u2in(x), u2in(y), u2in(hs*2), 360 * (angle & 0xfff) / 4096., layer, ratio, get_name(data[18:]))
+			print '- Text at (%f", %f") size %f", angle %f, layer %d, ratio %d%%, font %s, text %s' % (u2in(x), u2in(y), u2in(hs*2), 360 * (angle & 0xfff) / 4096., layer, ratio, font, get_name(data[18:]))
 		elif data[0] == '\x2d':
 			x, y, xxx, symno = struct.unpack('<iiHH', data[4:16])
 			print '- Device/Symbol %d at (%f", %f"), name %s' % (symno, u2in(x), u2in(y), get_name(data[16:]))
