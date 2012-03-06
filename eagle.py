@@ -98,11 +98,16 @@ def read_layers(f):
 			name = get_name(data[15:])
 			assert c1 == 0x13
 			assert c2 in (0x00, 0x80)
+			assert flags & 0x0c in (0x00, 0x0c), 'I thought visibility always set two bits?'
+			assert flags & 0xe0 == 0x00, 'Unknown flags: %s' % hex(flags & 0xe0)
 			assert data[7:15] == 8*'\x00'
 			side = 'bottom' if flags & 0x10 else 'top'
-			# This might be way off
-			visible = {1: 0, 2: 0, 3: 0, 13: 0, 14: 1, 15: 1}[flags & (~0x10)]
-			print '- Layer: fill=%d, color=%d, name=%s, layer=%d, other=%d, side=%s, unknown_flags=%d, visible=%d' % (fill, color, name, layer, opposite_layer, side, flags, visible)
+			visible = flags & 0x0c == 0x0c # whether objects on this layer are currently shown
+			available = flags & 0x02 == 0x02 # not available => not visible in layer display dialog at all
+			unknown = flags & 0x01 == 0x01 # no idea what this is, it doesn't seem to do much anything...
+			# So the ulp "visible" flag is basically "visible and not hidden", or "flags & 0x0e == 0x0e"
+			ulpvisible = visible and available
+			print '- Layer: fill=%d, color=%d, name=%s, layer=%d, other=%d, side=%s, unknown=%d, visible=%d' % (fill, color, name, layer, opposite_layer, side, unknown, ulpvisible)
 		elif data[0] == '\x15':
 			print '- Devices/symbols/packages:', get_name(data[16:])
 		elif data[0] == '\x17':
