@@ -264,13 +264,32 @@ def read_layers(f):
 			angle = '0 90 180 270'.split()[(flags1 & 0x0c) >> 2]
 			smashed = (flags2 & 0x01) == 0x01
 			print '- Schema/symbol at (%f", %f"), angle %s, smashed %s' % (u2in(x), u2in(y), angle, smashed)
-		elif data[0] in ('\x35', '\x34'):
+		elif data[0] in ('\x35', '\x34', '\x33', '\x41'):
 			font, layer, x, y, hs, xxx, angle = struct.unpack('<BBiiHHH', data[2:18])
 			font = 'vector proportional fixed'.split()[font]
 			ratio = (xxx >> 2) & 0x1f
 			angle = '0 90 180 270'.split()[(angle & 0x0c00) >> 10]
-			title = {'\x35': 'value', '\x34': 'name'}[data[0]]
-			print '- Smashed %s at (%f", %f") size %f", angle %s, layer %d, ratio %d%%, font %s' % (title, u2in(x), u2in(y), u2in(hs*2), angle, layer, ratio, font)
+			if data[0] == '\x41':
+				extra = ', name ' + get_name(data[18:])
+			else:
+				extra = ''
+			title = {'\x35': 'Smashed value', '\x34': 'Smashed name', '\x33': 'Net/bus label', '\x41': 'Attribute'}[data[0]]
+			print '- %s at (%f", %f") size %f", angle %s, layer %d, ratio %d%%, font %s%s' % (title, u2in(x), u2in(y), u2in(hs*2), angle, layer, ratio, font, extra)
+		elif data[0] == '\x1f':
+			name = get_name(data[16:])
+			print '- Net name %s' % (name, )
+		elif data[0] == '\x20':
+			print '- Path'
+		elif data[0] == '\x27':
+			x, y = struct.unpack('<ii', data[4:12])
+			print '- Junction at (%f", %f")' % (u2in(x), u2in(y))
+		elif data[0] == '\x3a':
+			name = get_name(data[4:])
+			print '- Bus name %s' % (name, )
+		elif data[0] == '\x42':
+			attr = get_name(data[7:])
+			sym = get_name(data[2:7])
+			print '- Attribute:', sym, attr
 		else:
 			raise ValueError, 'Unknown section type'
 
