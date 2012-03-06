@@ -111,24 +111,37 @@ def read_layers(f):
 			ulpvisible = visible and available
 			print '- Layer: fill=%d, color=%d, name=%s, layer=%d, other=%d, side=%s, unknown=%d, visible=%d' % (fill, color, name, layer, opposite_layer, side, unknown, ulpvisible)
 		elif data[0] == '\x15':
-			print '- Devices/symbols/packages:', get_name(data[16:])
+			libname = get_name(data[16:])
+			print '- Devices/symbols/packages:', libname
 		elif data[0] == '\x17':
-			print '- Devices:', get_name(data[16:])
+			libname = get_name(data[16:])
+			print '- Devices:', libname
 		elif data[0] == '\x18':
-			print '- Symbols:', get_name(data[16:])
+			libname = get_name(data[16:])
+			print '- Symbols:', libname
 		elif data[0] == '\x19':
-			print '- Packages:', get_name(data[16:]), get_name(data[10:16])
+			libname = get_name(data[16:])
+			desc = get_name(data[10:16])
+			print '- Packages:', libname, desc
 		elif data[0] == '\x1d':
-			print '- Symbol:', get_name(data[16:])
+			libname = get_name(data[16:])
+			print '- Symbol:', libname
 		elif data[0] == '\x1e':
-			print '- Package:', get_name(data[18:]), get_name(data[13:18])
+			name = get_name(data[18:])
+			desc = get_name(data[13:18])
+			print '- Package:', name, desc
 		elif data[0] == '\x37':
 			con_byte = (ord(data[7]) & 0x80) >> 7
 			pin_bits = ord(data[7]) & 0xf
-			print '- Device:', get_name(data[18:]), get_name(data[8:13]), get_name(data[13:18])
+			name = get_name(data[18:])
+			desc = get_name(data[13:18])
+			prefix = get_name(data[8:13])
+			print '- Device:', name, prefix, desc
 		elif data[0] == '\x36':
 			pacno = struct.unpack('<H', data[4:6])[0]
-			print '- Device/Package %d' % pacno, get_name(data[19:]), get_name(data[6:12])
+			name = get_name(data[19:])
+			table = get_name(data[6:19])
+			print '- Device/Package %d' % pacno, name, table
 		elif data[0] == '\x22': # Line or arc
 			# 4th byte is layer
 			# next 4 4-byte fields each contain 3 bytes of x1, y1, x2, y2 respectively
@@ -189,10 +202,12 @@ def read_layers(f):
 			print '- Polygon, width %f", spacing %f", pour %s, layer %d' % (u2in(hw*2), u2in(hs*2), 'hatch' if flags & 0x01 else 'solid', layer)
 		elif data[0] == '\x2a':
 			x, y, hw, hd, angle, flags = struct.unpack('<iiHHHB', data[4:19])
-			print '- Pad at (%f", %f"), diameter %f", drill %f, angle %f, flags: %s, name %s"' % (u2in(x), u2in(y), u2in(hd*2), u2in(hw*2), 360 * angle / 4096., ', '.join(get_flags(flags, pth_pad_flags)), get_name(data[19:]))
+			name = get_name(data[19:])
+			print '- Pad at (%f", %f"), diameter %f", drill %f, angle %f, flags: %s, name %s"' % (u2in(x), u2in(y), u2in(hd*2), u2in(hw*2), 360 * angle / 4096., ', '.join(get_flags(flags, pth_pad_flags)), name)
 		elif data[0] == '\x2b':
 			roundness, layer, x, y, hw, hh, angle, flags = struct.unpack('<BBiiHHHB', data[2:19])
-			print '- SMD pad at (%f", %f") size %f" x %f", angle %f, layer %d, roundness %d%%, flags: %s, name %s' % (u2in(x), u2in(y), u2in(hw*2), u2in(hh*2), 360 * angle / 4096., layer, roundness, ', '.join(get_flags(flags, smd_pad_flags)), get_name(data[19:]))
+			name = get_name(data[19:])
+			print '- SMD pad at (%f", %f") size %f" x %f", angle %f, layer %d, roundness %d%%, flags: %s, name %s' % (u2in(x), u2in(y), u2in(hw*2), u2in(hh*2), 360 * angle / 4096., layer, roundness, ', '.join(get_flags(flags, smd_pad_flags)), name)
 		elif data[0] == '\x28':
 			x, y, hw = struct.unpack('<iiI', data[4:16])
 			print '- Hole at (%f", %f") drill %f"' % (u2in(x), u2in(y), u2in(hw*2))
@@ -201,10 +216,12 @@ def read_layers(f):
 			font = 'vector proportional fixed'.split()[font]
 			ratio = (xxx >> 2) & 0x1f
 			# angle & 0x4000 => spin, no idea what that does though..
-			print '- Text at (%f", %f") size %f", angle %f, layer %d, ratio %d%%, font %s, text %s' % (u2in(x), u2in(y), u2in(hs*2), 360 * (angle & 0xfff) / 4096., layer, ratio, font, get_name(data[18:]))
+			name = get_name(data[18:])
+			print '- Text at (%f", %f") size %f", angle %f, layer %d, ratio %d%%, font %s, text %s' % (u2in(x), u2in(y), u2in(hs*2), 360 * (angle & 0xfff) / 4096., layer, ratio, font, name)
 		elif data[0] == '\x2d':
 			x, y, xxx, symno = struct.unpack('<iiHH', data[4:16])
-			print '- Device/Symbol %d at (%f", %f"), name %s' % (symno, u2in(x), u2in(y), get_name(data[16:]))
+			name = get_name(data[16:])
+			print '- Device/Symbol %d at (%f", %f"), name %s' % (symno, u2in(x), u2in(y), name)
 		elif data[0] == '\x2c':
 			flags1, zero, x, y, flags2, swaplevel = struct.unpack('<BBiiBB', data[2:14])
 			assert flags1 & 0x3c == 0x00, 'Unknown flag bits: %s' % hex(flags1 & 0x3c)
@@ -214,7 +231,8 @@ def read_layers(f):
 			direction = 'Nc In Out I/O OC Pwr Pas Hiz Sup'.split()[flags2 & 0x0f]
 			length = 'Point Short Middle Long'.split()[(flags2 & 0x30) >> 4]
 			angle = '0 90 180 270'.split()[(flags2 & 0xc0) >> 6]
-			print '- Pin at (%f", %f"), name %s, angle %s, direction %s, swaplevel %s, length %s, function %s, visible %s' % (u2in(x), u2in(y), get_name(data[14:]), angle, direction, swaplevel, length, function, visible)
+			name = get_name(data[14:])
+			print '- Pin at (%f", %f"), name %s, angle %s, direction %s, swaplevel %s, length %s, function %s, visible %s' % (u2in(x), u2in(y), name, angle, direction, swaplevel, length, function, visible)
 		elif data[0] == '\x3c':
 			# Divided into slots
 			# - Slot N corresponds to pad N
@@ -228,14 +246,17 @@ def read_layers(f):
 			#	pin = slot & ((1 << pin_bits) - 1)
 			print '- Device/Connections:', [(slot >> pin_bits, slot & ((1 << pin_bits) - 1)) for slot in slots if slot]
 		elif data[0] == '\x14':
-			print '- Xref format:', get_name(data[19:24])
+			text = get_name(data[19:24])
+			print '- Xref format:', text
 		elif data[0] == '\x1a':
 			print '- Schema'
 		elif data[0] == '\x1b':
 			print '- Board'
 		elif data[0] == '\x38':
 			subsecs, xxx2, symno, xxx3, xxx4 = struct.unpack('<HHHBH', data[2:11])
-			print '- Schema/symbol %d, name %s, value %s' % (symno, get_name(data[11:16]), get_name(data[16:]))
+			value = get_name(data[16:])
+			name = get_name(data[11:16])
+			print '- Schema/symbol %d, name %s, value %s' % (symno, name, value)
 		elif data[0] == '\x30':
 			subsecs, x, y = struct.unpack('<Hii', data[2:12])
 			flags1 = ord(data[17])
