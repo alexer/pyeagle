@@ -197,7 +197,8 @@ def read_layers(f):
 			# angle & 0x4000 => spin, no idea what that does though..
 			print '- Text at (%f", %f") size %f", angle %f, layer %d, ratio %d%%, text %s' % (u2in(x), u2in(y), u2in(hs*2), 360 * (angle & 0xfff) / 4096., layer, ratio, get_name(data[18:]))
 		elif data[0] == '\x2d':
-			print '- ???:', get_name(data[16:])
+			x, y = struct.unpack('<ii', data[4:12])
+			print '- Device/Symbol at (%f", %f"), name %s' % (u2in(x), u2in(y), get_name(data[16:]))
 		elif data[0] == '\x2c':
 			flags1, zero, x, y, flags2, swaplevel = struct.unpack('<BBiiBB', data[2:14])
 			assert flags1 & 0x3c == 0x00, 'Unknown flag bits: %s' % hex(flags1 & 0x3c)
@@ -209,7 +210,12 @@ def read_layers(f):
 			angle = '0 90 180 270'.split()[(flags2 & 0xc0) >> 6]
 			print '- Pin at (%f", %f"), name %s, angle %s, direction %s, swaplevel %s, length %s, function %s, visible %s' % (u2in(x), u2in(y), get_name(data[14:]), angle, direction, swaplevel, length, function, visible)
 		elif data[0] == '\x3c':
-			print '- Device/???'
+			# Divided into slots
+			# - Slot N corresponds to pad N
+			# - Slots have two numbers
+			#   - First corresponds to symbol number
+			#   - Second corresponds to symbol pin number
+			print '- Device/Connections'
 		else:
 			raise ValueError, 'Unknown section type'
 
