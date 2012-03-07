@@ -267,16 +267,20 @@ def read_layers(f):
 			text = get_name(data[19:24])
 			print indent + '- Xref format:', text
 		elif data[0] == '\x1a':
+			subsecs = struct.unpack('<I', data[12:16])[0]
+			indents.append(subsecs)
 			print indent + '- Schema'
 		elif data[0] == '\x1b':
 			print indent + '- Board'
 		elif data[0] == '\x38':
 			subsecs, xxx2, symno, xxx3, xxx4 = struct.unpack('<HHHBH', data[2:11])
+			indents.append(subsecs)
 			value = get_name(data[16:])
 			name = get_name(data[11:16])
 			print indent + '- Schema/symbol %d, name %s, value %s' % (symno, name, value)
 		elif data[0] == '\x30':
 			subsecs, x, y = struct.unpack('<Hii', data[2:12])
+			indents.append(subsecs)
 			flags1 = ord(data[17])
 			flags2 = ord(data[18])
 			angle = '0 90 180 270'.split()[(flags1 & 0x0c) >> 2]
@@ -294,14 +298,20 @@ def read_layers(f):
 			title = {'\x35': 'Smashed value', '\x34': 'Smashed name', '\x33': 'Net/bus label', '\x41': 'Attribute'}[data[0]]
 			print indent + '- %s at (%f", %f") size %f", angle %s, layer %d, ratio %d%%, font %s%s' % (title, u2in(x), u2in(y), u2in(hs*2), angle, layer, ratio, font, extra)
 		elif data[0] == '\x1f':
+			subsecs = struct.unpack('<H', data[2:4])[0]
+			indents.append(subsecs)
 			name = get_name(data[16:])
 			print indent + '- Net name %s' % (name, )
 		elif data[0] == '\x20':
+			subsecs = struct.unpack('<H', data[2:4])[0]
+			indents.append(subsecs)
 			print indent + '- Path'
 		elif data[0] == '\x27':
 			x, y = struct.unpack('<ii', data[4:12])
 			print indent + '- Junction at (%f", %f")' % (u2in(x), u2in(y))
 		elif data[0] == '\x3a':
+			subsecs = struct.unpack('<H', data[2:4])[0]
+			indents.append(subsecs)
 			name = get_name(data[4:])
 			print indent + '- Bus name %s' % (name, )
 		elif data[0] == '\x42':
