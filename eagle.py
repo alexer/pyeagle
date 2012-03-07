@@ -55,6 +55,7 @@ def read_layers(f):
 	- contains 2 4-byte fields, which are probably the same as above
 	Type 19: packages
 	"""
+	indents = []
 	con_byte = None
 	pin_bits = None
 	while True:
@@ -72,6 +73,9 @@ def read_layers(f):
 		#	assert data[15:] == '\x00untitled'
 
 		dump_hex_ascii(data)
+
+		indents = [indent - 1 for indent in indents if indent > 0]
+		indent = '  ' * len(indents)
 
 		#0x13 = layer
 		#0x1d = symbol
@@ -92,9 +96,9 @@ def read_layers(f):
 			end_offset = section_count * 24
 			init_names(f, end_offset)
 		elif data[0] == '\x11':
-			print '- ???'
+			print indent + '- ???'
 		elif data[0] == '\x12':
-			print '- ???'
+			print indent + '- ???'
 		elif data[0] == '\x13':
 			c1, c2, flags, layer, opposite_layer, fill, color = struct.unpack('BBBBBBB', data[:7])
 			name = get_name(data[15:])
@@ -109,39 +113,53 @@ def read_layers(f):
 			unknown = flags & 0x01 == 0x01 # no idea what this is, it doesn't seem to do much anything...
 			# So the ulp "visible" flag is basically "visible and not hidden", or "flags & 0x0e == 0x0e"
 			ulpvisible = visible and available
-			print '- Layer: fill=%d, color=%d, name=%s, layer=%d, other=%d, side=%s, unknown=%d, visible=%d' % (fill, color, name, layer, opposite_layer, side, unknown, ulpvisible)
+			print indent + '- Layer: fill=%d, color=%d, name=%s, layer=%d, other=%d, side=%s, unknown=%d, visible=%d' % (fill, color, name, layer, opposite_layer, side, unknown, ulpvisible)
 		elif data[0] == '\x15':
+			devsubsecs, symsubsecs, pacsubsecs = struct.unpack('<III', data[4:16])
+			indents.append(devsubsecs + symsubsecs + pacsubsecs)
 			libname = get_name(data[16:])
-			print '- Devices/symbols/packages:', libname
+			print indent + '- Devices/symbols/packages:', libname, devsubsecs, symsubsecs, pacsubsecs
 		elif data[0] == '\x17':
+			subsecs, children = struct.unpack('<II', data[4:12])
+			indents.append(subsecs)
 			libname = get_name(data[16:])
-			print '- Devices:', libname
+			print indent + '- Devices:', libname, subsecs, children
 		elif data[0] == '\x18':
+			subsecs, children = struct.unpack('<II', data[4:12])
+			indents.append(subsecs)
 			libname = get_name(data[16:])
-			print '- Symbols:', libname
+			print indent + '- Symbols:', libname, subsecs, children
 		elif data[0] == '\x19':
+			subsecs, children = struct.unpack('<IH', data[4:10])
+			indents.append(subsecs)
 			libname = get_name(data[16:])
 			desc = get_name(data[10:16])
-			print '- Packages:', libname, desc
+			print indent + '- Packages:', libname, desc, subsecs, children
 		elif data[0] == '\x1d':
+			subsecs = struct.unpack('<H', data[2:4])[0]
+			indents.append(subsecs)
 			libname = get_name(data[16:])
-			print '- Symbol:', libname
+			print indent + '- Symbol:', libname, subsecs
 		elif data[0] == '\x1e':
+			subsecs = struct.unpack('<H', data[2:4])[0]
+			indents.append(subsecs)
 			name = get_name(data[18:])
 			desc = get_name(data[13:18])
-			print '- Package:', name, desc
+			print indent + '- Package:', name, desc, subsecs
 		elif data[0] == '\x37':
+			symsubsecs, devsubsecs = struct.unpack('<HH', data[2:6])
+			indents.append(symsubsecs + devsubsecs)
 			con_byte = (ord(data[7]) & 0x80) >> 7
 			pin_bits = ord(data[7]) & 0xf
 			name = get_name(data[18:])
 			desc = get_name(data[13:18])
 			prefix = get_name(data[8:13])
-			print '- Device:', name, prefix, desc
+			print indent + '- Device:', name, prefix, desc, symsubsecs, devsubsecs
 		elif data[0] == '\x36':
 			pacno = struct.unpack('<H', data[4:6])[0]
 			name = get_name(data[19:])
 			table = get_name(data[6:19])
-			print '- Device/Package %d' % pacno, name, table
+			print indent + '- Device/Package %d' % pacno, name, table
 		elif data[0] == '\x22': # Line or arc
 			# 4th byte is layer
 			# next 4 4-byte fields each contain 3 bytes of x1, y1, x2, y2 respectively
@@ -163,7 +181,7 @@ def read_layers(f):
 
 			if not arctype:
 				x1, y1, x2, y2 = struct.unpack('<iiii', data[4:20])
-				print '- Line from (%f", %f") to (%f", %f"), width %f", layer %d, style %s' % (u2in(x1), u2in(y1), u2in(x2), u2in(y2), u2in(hw*2), layer, style)
+				print indent + '- Line from (%f", %f") to (%f", %f"), width %f", layer %d, style %s' % (u2in(x1), u2in(y1), u2in(x2), u2in(y2), u2in(hw*2), layer, style)
 			elif arctype == 0x81:
 				# Extend 3-byte coordinate fields to 4 bytes, taking the negative-flags into account
 				negflags = ord(data[19])
@@ -182,46 +200,46 @@ def read_layers(f):
 					cy = c
 					cx = (y3-cy)*(y2-y1)/float(x2-x1)+x3
 					xst, yst = '?', ''
-				print '- Arc from (%f", %f") to (%f", %f"), center at (%f"%s, %f"%s), width %f", layer %d, style %s, cap %s' % (u2in(x1), u2in(y1), u2in(x2), u2in(y2), u2in(cx), xst, u2in(cy), yst, u2in(hw*2), layer, style, cap)
+				print indent + '- Arc from (%f", %f") to (%f", %f"), center at (%f"%s, %f"%s), width %f", layer %d, style %s, cap %s' % (u2in(x1), u2in(y1), u2in(x2), u2in(y2), u2in(cx), xst, u2in(cy), yst, u2in(hw*2), layer, style, cap)
 			else:
 				arctypestr = {0x78: '90 downleft', 0x79: '90 downright', 0x7a: '90 upright', 0x7b: '90 upleft', 0x7c: '180 left', 0x7d: '180 right', 0x7e: '180 down', 0x7f: '180 up'}[arctype]
 				x1, y1, x2, y2 = struct.unpack('<iiii', data[4:20])
-				print '- Arc from (%f", %f") to (%f", %f"), type %s, width %f", layer %d, style %s, cap %s' % (u2in(x1), u2in(y1), u2in(x2), u2in(y2), arctypestr, u2in(hw*2), layer, style, cap)
+				print indent + '- Arc from (%f", %f") to (%f", %f"), type %s, width %f", layer %d, style %s, cap %s' % (u2in(x1), u2in(y1), u2in(x2), u2in(y2), arctypestr, u2in(hw*2), layer, style, cap)
 
 			#dump_hex(data[1:3])
 			#dump_hex(data[7::4])
 		elif data[0] == '\x25':
 			layer, x1, y1, r1, xxx, hw = struct.unpack('<biiiiI', data[3:])
 			#assert r1 == xxx # Almost always the same...
-			print '- Circle at (%f", %f"), radius %f", width %f", layer %d' % (u2in(x1), u2in(y1), u2in(r1), u2in(hw*2), layer)
+			print indent + '- Circle at (%f", %f"), radius %f", width %f", layer %d' % (u2in(x1), u2in(y1), u2in(r1), u2in(hw*2), layer)
 		elif data[0] == '\x26':
 			layer, x1, y1, x2, y2, angle = struct.unpack('<biiiiH', data[3:-2])
-			print '- Rectangle from (%f", %f") to (%f", %f"), angle %f, layer %d' % (u2in(x1), u2in(y1), u2in(x2), u2in(y2), 360 * angle / 4096., layer)
+			print indent + '- Rectangle from (%f", %f") to (%f", %f"), angle %f, layer %d' % (u2in(x1), u2in(y1), u2in(x2), u2in(y2), 360 * angle / 4096., layer)
 		elif data[0] == '\x21':
 			hw, hs, xxx, layer, flags = struct.unpack('<HHHBB', data[12:20])
-			print '- Polygon, width %f", spacing %f", pour %s, layer %d' % (u2in(hw*2), u2in(hs*2), 'hatch' if flags & 0x01 else 'solid', layer)
+			print indent + '- Polygon, width %f", spacing %f", pour %s, layer %d' % (u2in(hw*2), u2in(hs*2), 'hatch' if flags & 0x01 else 'solid', layer)
 		elif data[0] == '\x2a':
 			x, y, hw, hd, angle, flags = struct.unpack('<iiHHHB', data[4:19])
 			name = get_name(data[19:])
-			print '- Pad at (%f", %f"), diameter %f", drill %f", angle %f, flags: %s, name %s' % (u2in(x), u2in(y), u2in(hd*2), u2in(hw*2), 360 * angle / 4096., ', '.join(get_flags(flags, pth_pad_flags)), name)
+			print indent + '- Pad at (%f", %f"), diameter %f", drill %f", angle %f, flags: %s, name %s' % (u2in(x), u2in(y), u2in(hd*2), u2in(hw*2), 360 * angle / 4096., ', '.join(get_flags(flags, pth_pad_flags)), name)
 		elif data[0] == '\x2b':
 			roundness, layer, x, y, hw, hh, angle, flags = struct.unpack('<BBiiHHHB', data[2:19])
 			name = get_name(data[19:])
-			print '- SMD pad at (%f", %f") size %f" x %f", angle %f, layer %d, roundness %d%%, flags: %s, name %s' % (u2in(x), u2in(y), u2in(hw*2), u2in(hh*2), 360 * angle / 4096., layer, roundness, ', '.join(get_flags(flags, smd_pad_flags)), name)
+			print indent + '- SMD pad at (%f", %f") size %f" x %f", angle %f, layer %d, roundness %d%%, flags: %s, name %s' % (u2in(x), u2in(y), u2in(hw*2), u2in(hh*2), 360 * angle / 4096., layer, roundness, ', '.join(get_flags(flags, smd_pad_flags)), name)
 		elif data[0] == '\x28':
 			x, y, hw = struct.unpack('<iiI', data[4:16])
-			print '- Hole at (%f", %f") drill %f"' % (u2in(x), u2in(y), u2in(hw*2))
+			print indent + '- Hole at (%f", %f") drill %f"' % (u2in(x), u2in(y), u2in(hw*2))
 		elif data[0] == '\x31':
 			font, layer, x, y, hs, xxx, angle = struct.unpack('<BBiiHHH', data[2:18])
 			font = 'vector proportional fixed'.split()[font]
 			ratio = (xxx >> 2) & 0x1f
 			# angle & 0x4000 => spin, no idea what that does though..
 			name = get_name(data[18:])
-			print '- Text at (%f", %f") size %f", angle %f, layer %d, ratio %d%%, font %s, text %s' % (u2in(x), u2in(y), u2in(hs*2), 360 * (angle & 0xfff) / 4096., layer, ratio, font, name)
+			print indent + '- Text at (%f", %f") size %f", angle %f, layer %d, ratio %d%%, font %s, text %s' % (u2in(x), u2in(y), u2in(hs*2), 360 * (angle & 0xfff) / 4096., layer, ratio, font, name)
 		elif data[0] == '\x2d':
 			x, y, xxx, symno = struct.unpack('<iiHH', data[4:16])
 			name = get_name(data[16:])
-			print '- Device/Symbol %d at (%f", %f"), name %s' % (symno, u2in(x), u2in(y), name)
+			print indent + '- Device/Symbol %d at (%f", %f"), name %s' % (symno, u2in(x), u2in(y), name)
 		elif data[0] == '\x2c':
 			flags1, zero, x, y, flags2, swaplevel = struct.unpack('<BBiiBB', data[2:14])
 			assert flags1 & 0x3c == 0x00, 'Unknown flag bits: %s' % hex(flags1 & 0x3c)
@@ -232,7 +250,7 @@ def read_layers(f):
 			length = 'Point Short Middle Long'.split()[(flags2 & 0x30) >> 4]
 			angle = '0 90 180 270'.split()[(flags2 & 0xc0) >> 6]
 			name = get_name(data[14:])
-			print '- Pin at (%f", %f"), name %s, angle %s, direction %s, swaplevel %s, length %s, function %s, visible %s' % (u2in(x), u2in(y), name, angle, direction, swaplevel, length, function, visible)
+			print indent + '- Pin at (%f", %f"), name %s, angle %s, direction %s, swaplevel %s, length %s, function %s, visible %s' % (u2in(x), u2in(y), name, angle, direction, swaplevel, length, function, visible)
 		elif data[0] == '\x3c':
 			# Divided into slots
 			# - Slot N corresponds to pad N
@@ -244,26 +262,26 @@ def read_layers(f):
 			#for slot in slots:
 			#	sym = slot >> pin_bits
 			#	pin = slot & ((1 << pin_bits) - 1)
-			print '- Device/Connections:', [(slot >> pin_bits, slot & ((1 << pin_bits) - 1)) for slot in slots if slot]
+			print indent + '- Device/Connections:', [(slot >> pin_bits, slot & ((1 << pin_bits) - 1)) for slot in slots if slot]
 		elif data[0] == '\x14':
 			text = get_name(data[19:24])
-			print '- Xref format:', text
+			print indent + '- Xref format:', text
 		elif data[0] == '\x1a':
-			print '- Schema'
+			print indent + '- Schema'
 		elif data[0] == '\x1b':
-			print '- Board'
+			print indent + '- Board'
 		elif data[0] == '\x38':
 			subsecs, xxx2, symno, xxx3, xxx4 = struct.unpack('<HHHBH', data[2:11])
 			value = get_name(data[16:])
 			name = get_name(data[11:16])
-			print '- Schema/symbol %d, name %s, value %s' % (symno, name, value)
+			print indent + '- Schema/symbol %d, name %s, value %s' % (symno, name, value)
 		elif data[0] == '\x30':
 			subsecs, x, y = struct.unpack('<Hii', data[2:12])
 			flags1 = ord(data[17])
 			flags2 = ord(data[18])
 			angle = '0 90 180 270'.split()[(flags1 & 0x0c) >> 2]
 			smashed = (flags2 & 0x01) == 0x01
-			print '- Schema/symbol at (%f", %f"), angle %s, smashed %s' % (u2in(x), u2in(y), angle, smashed)
+			print indent + '- Schema/symbol at (%f", %f"), angle %s, smashed %s' % (u2in(x), u2in(y), angle, smashed)
 		elif data[0] in ('\x35', '\x34', '\x33', '\x41'):
 			font, layer, x, y, hs, xxx, angle = struct.unpack('<BBiiHHH', data[2:18])
 			font = 'vector proportional fixed'.split()[font]
@@ -274,22 +292,22 @@ def read_layers(f):
 			else:
 				extra = ''
 			title = {'\x35': 'Smashed value', '\x34': 'Smashed name', '\x33': 'Net/bus label', '\x41': 'Attribute'}[data[0]]
-			print '- %s at (%f", %f") size %f", angle %s, layer %d, ratio %d%%, font %s%s' % (title, u2in(x), u2in(y), u2in(hs*2), angle, layer, ratio, font, extra)
+			print indent + '- %s at (%f", %f") size %f", angle %s, layer %d, ratio %d%%, font %s%s' % (title, u2in(x), u2in(y), u2in(hs*2), angle, layer, ratio, font, extra)
 		elif data[0] == '\x1f':
 			name = get_name(data[16:])
-			print '- Net name %s' % (name, )
+			print indent + '- Net name %s' % (name, )
 		elif data[0] == '\x20':
-			print '- Path'
+			print indent + '- Path'
 		elif data[0] == '\x27':
 			x, y = struct.unpack('<ii', data[4:12])
-			print '- Junction at (%f", %f")' % (u2in(x), u2in(y))
+			print indent + '- Junction at (%f", %f")' % (u2in(x), u2in(y))
 		elif data[0] == '\x3a':
 			name = get_name(data[4:])
-			print '- Bus name %s' % (name, )
+			print indent + '- Bus name %s' % (name, )
 		elif data[0] == '\x42':
 			attr = get_name(data[7:])
 			sym = get_name(data[2:7])
-			print '- Attribute:', sym, attr
+			print indent + '- Attribute:', sym, attr
 		else:
 			raise ValueError, 'Unknown section type'
 
