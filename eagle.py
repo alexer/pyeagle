@@ -171,17 +171,21 @@ def read_layers(f):
 
 			layer, hw, stflags, arctype = struct.unpack('<bHBB', data[3] + data[20:24])
 
-			assert stflags & 0xcc == 0, 'Unknown bits set in style flags: ' + hex(stflags & 0xcc)
-			assert arctype in (0x00, 0x81, 0x7e, 0x7f, 0x7b, 0x79, 0x78, 0x7a, 0x7d, 0x7c), 'Unknown arc type: ' + hex(arctype)
+			if arctype != 0x01:
+				assert stflags & 0xcc == 0, 'Unknown bits set in style flags: ' + hex(stflags & 0xcc)
+			assert arctype in (0x00, 0x01, 0x81, 0x7e, 0x7f, 0x7b, 0x79, 0x78, 0x7a, 0x7d, 0x7c), 'Unknown arc type: ' + hex(arctype)
 
 			# Status flags; 0x20 == positive curve value
 			# Cap style and positive curve are present on bare lines too, that's probably a bug
 			style = {0x00: 'continuous', 0x01: 'longdash', 0x02: 'shortdash', 0x03: 'dashdot'}[stflags & 0x03]
 			cap = {0x00: 'round', 0x10: 'flat'}[stflags & 0x10]
 
-			if not arctype:
+			if arctype == 0x00:
 				x1, y1, x2, y2 = struct.unpack('<iiii', data[4:20])
 				print indent + '- Line from (%f", %f") to (%f", %f"), width %f", layer %d, style %s' % (u2in(x1), u2in(y1), u2in(x2), u2in(y2), u2in(hw*2), layer, style)
+			elif arctype == 0x01:
+				x1, y1, x2, y2 = struct.unpack('<iiii', data[4:20])
+				print indent + '- Airwire from (%f", %f") to (%f", %f"), width %f", layer %d' % (u2in(x1), u2in(y1), u2in(x2), u2in(y2), u2in(hw*2), layer)
 			elif arctype == 0x81:
 				# Extend 3-byte coordinate fields to 4 bytes, taking the negative-flags into account
 				negflags = ord(data[19])
@@ -271,6 +275,8 @@ def read_layers(f):
 			indents.append(subsecs)
 			print indent + '- Schema'
 		elif data[0] == '\x1b':
+			subsecs = struct.unpack('<I', data[4:8])[0]
+			indents.append(subsecs)
 			print indent + '- Board'
 		elif data[0] == '\x38':
 			subsecs, xxx2, symno, xxx3, xxx4 = struct.unpack('<HHHBH', data[2:11])
@@ -318,6 +324,24 @@ def read_layers(f):
 			attr = get_name(data[7:])
 			sym = get_name(data[2:7])
 			print indent + '- Attribute:', sym, attr
+		elif data[0] == '\x3d':
+			sym, xxx, pin = struct.unpack('<HHH', data[4:10])
+			print indent + '- Schema/connection, symbol %d, pin %d' % (sym, pin)
+		elif data[0] == '\x2e':
+			subsecs, x, y, xxx, pacno = struct.unpack('<HIIHH', data[2:16])
+			indents.append(subsecs)
+			print indent + '- Board/package %d at (%f", %f")' % (pacno, u2in(x), u2in(y))
+		elif data[0] == '\x2f':
+			value = get_name(data[10:24])
+			name = get_name(data[2:10])
+			print indent + '- Board/package, name %s, value %s' % (name, value)
+		elif data[0] == '\x1c':
+			subsecs = struct.unpack('<H', data[2:4])[0]
+			indents.append(subsecs)
+			print indent + '- Board/net'
+		elif data[0] == '\x3e':
+			pac, pin = struct.unpack('<HH', data[4:8])
+			print indent + '- Board/connection, package %d, pin %d' % (pac, pin)
 		else:
 			raise ValueError, 'Unknown section type'
 
