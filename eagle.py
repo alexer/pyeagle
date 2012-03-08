@@ -271,8 +271,8 @@ def read_layers(f):
 			text = get_name(data[19:24])
 			print indent + '- Xref format:', text
 		elif data[0] == '\x1a':
-			subsecs = struct.unpack('<I', data[12:16])[0]
-			indents.append(subsecs)
+			symsubsecs, bussubsecs, netsubsecs = struct.unpack('<III', data[12:24])
+			indents.append(symsubsecs + bussubsecs + netsubsecs)
 			print indent + '- Schema'
 		elif data[0] == '\x1b':
 			subsecs = struct.unpack('<I', data[4:8])[0]
