@@ -97,6 +97,11 @@ class Section:
 
 	def _get_name(self, pos, size): return get_name(self._get_bytes(pos, size))
 
+class UnknownSection(Section):
+	secname = '???'
+	def parse(self): pass
+	def __str__(self): return self.secname
+
 class StartSection(Section):
 	sectype = 0x10
 	secname = 'Start'
@@ -108,8 +113,14 @@ class StartSection(Section):
 	def __str__(self):
 		return '%s: subsecs %d, numsecs %d' % (self.secname, self.subsecs, self.numsecs)
 
+class Unknown11Section(UnknownSection):
+	sectype = 0x11
+
+class Unknown12Section(UnknownSection):
+	sectype = 0x12
+
 sections = {}
-for section in [StartSection]:
+for section in [StartSection, Unknown11Section, Unknown12Section]:
 	sections[section.sectype] = section
 
 def read_layers(f):
@@ -146,10 +157,6 @@ def read_layers(f):
 				init_names(f, end_offset)
 			section.hexdump()
 			print indent + '- ' + str(section)
-		elif data[0] == '\x11':
-			print indent + '- ???'
-		elif data[0] == '\x12':
-			print indent + '- ???'
 		elif data[0] == '\x13':
 			c1, c2, flags, layer, opposite_layer, fill, color = struct.unpack('BBBBBBB', data[:7])
 			name = get_name(data[15:])
