@@ -211,6 +211,18 @@ class SymbolSection(Section):
 	def __str__(self):
 		return '%s %s: subsecs %d' % (self.secname, self.name, self.subsecs)
 
+class PackageSection(Section):
+	sectype = 0x1e
+	secname = 'Package'
+	def parse(self):
+		self.subsecs = self._get_uint16(2)
+		self.name = self._get_name(18, 6)
+		self.desc = self._get_name(13, 5)
+		self.subsec_counts = [self.subsecs]
+
+	def __str__(self):
+		return '%s %s: desc %s, subsecs %d' % (self.secname, self.name, self.desc, self.subsecs)
+
 class AttributeSection(Section):
 	sectype = 0x42
 	secname = 'Attribute'
@@ -222,7 +234,7 @@ class AttributeSection(Section):
 		return '%s %s on symbol %s' % (self.secname, self.attribute, self.symbol)
 
 sections = {}
-for section in [StartSection, Unknown11Section, Unknown12Section, LayerSection, XrefFormatSection, LibrarySection, DevicesSection, SymbolsSection, PackagesSection, SymbolSection, AttributeSection]:
+for section in [StartSection, Unknown11Section, Unknown12Section, LayerSection, XrefFormatSection, LibrarySection, DevicesSection, SymbolsSection, PackagesSection, SymbolSection, PackageSection, AttributeSection]:
 	sections[section.sectype] = section
 
 def read_layers(f):
@@ -259,12 +271,6 @@ def read_layers(f):
 				init_names(f, end_offset)
 			section.hexdump()
 			print indent + '- ' + str(section)
-		elif data[0] == '\x1e':
-			subsecs = struct.unpack('<H', data[2:4])[0]
-			indents.append(subsecs)
-			name = get_name(data[18:])
-			desc = get_name(data[13:18])
-			print indent + '- Package:', name, desc, subsecs
 		elif data[0] == '\x37':
 			symsubsecs, devsubsecs = struct.unpack('<HH', data[2:6])
 			indents.append(symsubsecs + devsubsecs)
