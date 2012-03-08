@@ -91,7 +91,7 @@ def read_layers(f):
 			devsubsecs, symsubsecs, pacsubsecs = struct.unpack('<III', data[4:16])
 			indents.append(devsubsecs + symsubsecs + pacsubsecs)
 			libname = get_name(data[16:])
-			print indent + '- Devices/symbols/packages:', libname, devsubsecs, symsubsecs, pacsubsecs
+			print indent + '- Library:', libname, devsubsecs, symsubsecs, pacsubsecs
 		elif data[0] == '\x17':
 			subsecs, children = struct.unpack('<II', data[4:12])
 			indents.append(subsecs)
