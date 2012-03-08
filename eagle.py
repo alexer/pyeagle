@@ -265,6 +265,19 @@ class DeviceSection(Section):
 	def __str__(self):
 		return '%s %s: prefix %s, desc %s, con_byte %d, pin_bits %d, symsubsecs %d, pacsubsecs %d' % (self.secname, self.name, self.prefix, self.desc, self.con_byte, self.pin_bits, self.symsubsecs, self.pacsubsecs)
 
+class DeviceConnectionsSection(Section):
+	sectype = 0x3c
+	secname = 'Device/connections'
+	def parse(self):
+		# XXX: change to parent.con_byte when we have parents
+		fmt = '<' + ('22B' if con_byte else '11H')
+		slots = struct.unpack(fmt, self._get_bytes(2, 22))
+		# connections[padno] = (symno, pinno)
+		self.connections = [(slot >> pin_bits, slot & ((1 << pin_bits) - 1)) for slot in slots]
+
+	def __str__(self):
+		return '%s: %s' % (self.secname, self.connections)
+
 class AttributeSection(Section):
 	sectype = 0x42
 	secname = 'Attribute'
@@ -276,10 +289,11 @@ class AttributeSection(Section):
 		return '%s %s on symbol %s' % (self.secname, self.attribute, self.symbol)
 
 sections = {}
-for section in [StartSection, Unknown11Section, Unknown12Section, LayerSection, XrefFormatSection, LibrarySection, DevicesSection, SymbolsSection, PackagesSection, SymbolSection, PackageSection, DeviceSymbolSection, DevicePackageSection, DeviceSection, AttributeSection]:
+for section in [StartSection, Unknown11Section, Unknown12Section, LayerSection, XrefFormatSection, LibrarySection, DevicesSection, SymbolsSection, PackagesSection, SymbolSection, PackageSection, DeviceSymbolSection, DevicePackageSection, DeviceSection, DeviceConnectionsSection, AttributeSection]:
 	sections[section.sectype] = section
 
 def read_layers(f):
+	global con_byte, pin_bits
 	"""
 	The sections/whatever are 24 bytes long.
 	First byte is section type. Absolutely no idea what the second byte is, it seemed to be some kind of
@@ -407,18 +421,6 @@ def read_layers(f):
 			angle = '0 90 180 270'.split()[(flags2 & 0xc0) >> 6]
 			name = get_name(data[14:])
 			print indent + '- Pin at (%f", %f"), name %s, angle %s, direction %s, swaplevel %s, length %s, function %s, visible %s' % (u2in(x), u2in(y), name, angle, direction, swaplevel, length, function, visible)
-		elif data[0] == '\x3c':
-			# Divided into slots
-			# - Slot N corresponds to pad N
-			# - Slots have two numbers
-			#   - First corresponds to symbol number
-			#   - Second corresponds to symbol pin number
-			fmt = '<' + ('22B' if con_byte else '11H')
-			slots = struct.unpack(fmt, data[2:])
-			#for slot in slots:
-			#	sym = slot >> pin_bits
-			#	pin = slot & ((1 << pin_bits) - 1)
-			print indent + '- Device/Connections:', [(slot >> pin_bits, slot & ((1 << pin_bits) - 1)) for slot in slots if slot]
 		elif data[0] == '\x1a':
 			symsubsecs, bussubsecs, netsubsecs = struct.unpack('<III', data[12:24])
 			indents.append(symsubsecs + bussubsecs + netsubsecs)
