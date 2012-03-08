@@ -307,6 +307,20 @@ class CircleSection(Section):
 	def __str__(self):
 		return '%s: at (%f", %f"), radius %f", width %f", layer %d' % (self.secname, u2in(self.x1), u2in(self.y1), u2in(self.r), u2in(self.width_2*2), self.layer)
 
+class RectangleSection(Section):
+	sectype = 0x26
+	secname = 'Rectangle'
+	def parse(self):
+		self.layer = self._get_uint8(3)
+		self.x1 = self._get_int32(4)
+		self.y1 = self._get_int32(8)
+		self.x2 = self._get_int32(12)
+		self.y2 = self._get_int32(16)
+		self.angle = self._get_uint16(20)
+
+	def __str__(self):
+		return '%s: from (%f", %f") to (%f", %f"), angle %f, layer %d' % (self.secname, u2in(self.x1), u2in(self.y1), u2in(self.x2), u2in(self.y2), 360 * self.angle / 4096., self.layer)
+
 class JunctionSection(Section):
 	sectype = 0x27
 	secname = 'Junction'
@@ -466,7 +480,7 @@ class AttributeSection(Section):
 sections = {}
 for section in [StartSection, Unknown11Section, Unknown12Section, LayerSection, XrefFormatSection, LibrarySection, DevicesSection,
 		SymbolsSection, PackagesSection, SchemaSection, BoardSection, BoardNetSection, SymbolSection, PackageSection, SchemaNetSection,
-		PathSection, PolygonSection, CircleSection, JunctionSection,
+		PathSection, PolygonSection, CircleSection, RectangleSection, JunctionSection,
 		DeviceSymbolSection, BoardPackageSection, BoardPackage2Section,
 		SchemaSymbol2Section, DevicePackageSection, DeviceSection,
 		SchemaSymbolSection, SchemaBusSection, DeviceConnectionsSection, SchemaConnectionSection, BoardConnectionSection,
@@ -563,9 +577,6 @@ def read_layers(f):
 
 			#dump_hex(data[1:3])
 			#dump_hex(data[7::4])
-		elif data[0] == '\x26':
-			layer, x1, y1, x2, y2, angle = struct.unpack('<biiiiH', data[3:-2])
-			print indent + '- Rectangle from (%f", %f") to (%f", %f"), angle %f, layer %d' % (u2in(x1), u2in(y1), u2in(x2), u2in(y2), 360 * angle / 4096., layer)
 		elif data[0] == '\x2a':
 			x, y, hw, hd, angle, flags = struct.unpack('<iiHHHB', data[4:19])
 			name = get_name(data[19:])
