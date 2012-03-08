@@ -150,6 +150,19 @@ class XrefFormatSection(Section):
 	def __str__(self):
 		return '%s: %s' % (self.secname, self.format)
 
+class LibrarySection(Section):
+	sectype = 0x15
+	secname = 'Library'
+	def parse(self):
+		self.devsubsecs = self._get_uint32(4)
+		self.symsubsecs = self._get_uint32(8)
+		self.pacsubsecs = self._get_uint32(12)
+		self.name = self._get_name(16, 8)
+		self.subsec_counts = [self.devsubsecs, self.symsubsecs, self.pacsubsecs]
+
+	def __str__(self):
+		return '%s %s: devsubsecs %d, symsubsecs %d, pacsubsecs %d' % (self.secname, self.name, self.devsubsecs, self.symsubsecs, self.pacsubsecs)
+
 class AttributeSection(Section):
 	sectype = 0x42
 	secname = 'Attribute'
@@ -161,7 +174,7 @@ class AttributeSection(Section):
 		return '%s %s on symbol %s' % (self.secname, self.attribute, self.symbol)
 
 sections = {}
-for section in [StartSection, Unknown11Section, Unknown12Section, LayerSection, XrefFormatSection, AttributeSection]:
+for section in [StartSection, Unknown11Section, Unknown12Section, LayerSection, XrefFormatSection, LibrarySection, AttributeSection]:
 	sections[section.sectype] = section
 
 def read_layers(f):
@@ -198,11 +211,6 @@ def read_layers(f):
 				init_names(f, end_offset)
 			section.hexdump()
 			print indent + '- ' + str(section)
-		elif data[0] == '\x15':
-			devsubsecs, symsubsecs, pacsubsecs = struct.unpack('<III', data[4:16])
-			indents.append(devsubsecs + symsubsecs + pacsubsecs)
-			libname = get_name(data[16:])
-			print indent + '- Library:', libname, devsubsecs, symsubsecs, pacsubsecs
 		elif data[0] == '\x17':
 			subsecs, children = struct.unpack('<II', data[4:12])
 			indents.append(subsecs)
