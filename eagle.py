@@ -83,7 +83,7 @@ class Section:
 		assert self.data[pos:pos+size] == '\x00' * size, 'Unknown data: ' + repr(self.data[pos:pos+size])
 
 	def _get_zero_mask(self, pos, mask):
-		self.zero[pos] = mask
+		self.zero[pos] |= mask
 		assert ord(self.data[pos]) & mask == 0x00, 'Unknown bits: ' + hex(ord(self.data[pos]) & mask)
 
 	def _get_uint32(self, pos): return struct.unpack('<I', self._get_bytes(pos, 4))[0]
@@ -92,7 +92,7 @@ class Section:
 	def _get_uint8(self, pos):  return struct.unpack('<B', self._get_bytes(pos, 1))[0]
 
 	def _get_uint8_mask(self, pos, mask):
-		self.known[pos] = mask
+		self.known[pos] |= mask
 		return ord(self.data[pos]) & mask
 
 	def _get_name(self, pos, size): return get_name(self._get_bytes(pos, size))
