@@ -690,9 +690,6 @@ def read_layers(f):
 
 		sectype = ord(data[0])
 		section_cls = sections.get(sectype)
-		if not section_cls:
-			dump_hex_ascii(data)
-
 		if section_cls:
 			section = section_cls(data)
 			indents.append(sum(section.subsec_counts))
@@ -705,6 +702,7 @@ def read_layers(f):
 			section.hexdump()
 			print indent + '- ' + str(section)
 		else:
+			dump_hex_ascii(data)
 			raise ValueError, 'Unknown section type'
 
 	dump_hex_ascii(data)
