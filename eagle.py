@@ -41,6 +41,66 @@ def get_flags(value, flagdata):
 u2mm = lambda val: val/10/1000
 u2in = lambda val: val/2.54/100/1000
 
+class Section:
+	sectype = None
+	secname = None
+	def __init__(self, data):
+		self.data = data
+		self.known = [0x00] * 24
+		self.zero = [0x00] * 24
+		self.subsec_counts = []
+		self._get_uint8(0)
+		self.parse()
+
+	def _get_color(self, known, zero = 0):
+		assert known & zero == 0x00, "Bit can't be known and zero at the same time! (known = %s, zero = %s, known & zero = %s)" % (hex(known), hex(zero), hex(known & zero))
+		if known == 0x00 and zero == 0x00:
+			return '1;31' # unknown, red
+		elif known == 0xff and zero == 0x00:
+			return '1;32' # known, green
+		elif known == 0x00 and zero == 0xff:
+			return '1;34' # zero, blue
+		elif zero == 0x00:
+			return '1;33' # known/unknown, yellow
+		elif known == 0x00:
+			return '1;35' # unknown/zero, purple
+		elif known | zero == 0xff:
+			return '1;36' # known/zero, cyan
+		else:
+			return '1;37' # known/unknown/zero, white
+
+	def hexdump(self):
+		colorhex = ' '.join('\x1b[%sm%02x\x1b[m' % (self._get_color(known, zero), ord(byte)) for byte, known, zero in zip(self.data, self.known, self.zero))
+		colorascii = ''.join('\x1b[%sm%s\x1b[m' % (self._get_color(known, zero), byte if 32 <= ord(byte) < 127 else '.') for byte, known, zero in zip(self.data, self.known, self.zero))
+		print colorhex, colorascii
+
+	def _get_bytes(self, pos, size):
+		self.known[pos:pos+size] = [0xff] * size
+		return self.data[pos:pos+size]
+
+	def _get_zero(self, pos, size):
+		self.zero[pos:pos+size] = [0xff] * size
+		assert self.data[pos:pos+size] == '\x00' * size, 'Unknown data: ' + repr(self.data[pos:pos+size])
+
+	def _get_zero_mask(self, pos, mask):
+		self.zero[pos] = mask
+		assert ord(self.data[pos]) & mask == 0x00, 'Unknown bits: ' + hex(ord(self.data[pos]) & mask)
+
+	def _get_uint32(self, pos): return struct.unpack('<I', self._get_bytes(pos, 4))[0]
+	def _get_uint24(self, pos): return struct.unpack('<I', self._get_bytes(pos, 3) + '\x00')[0]
+	def _get_uint16(self, pos): return struct.unpack('<H', self._get_bytes(pos, 2))[0]
+	def _get_uint8(self, pos):  return struct.unpack('<B', self._get_bytes(pos, 1))[0]
+
+	def _get_uint8_mask(self, pos, mask):
+		self.known[pos] = mask
+		return ord(self.data[pos]) & mask
+
+	def _get_name(self, pos, size): return get_name(self._get_bytes(pos, size))
+
+sections = {}
+for section in []:
+	sections[section.sectype] = section
+
 def read_layers(f):
 	"""
 	The sections/whatever are 24 bytes long.
@@ -59,12 +119,20 @@ def read_layers(f):
 			break
 		data += f.read(20)
 
-		dump_hex_ascii(data)
-
 		indents = [indent - 1 for indent in indents if indent > 0]
 		indent = '  ' * len(indents)
 
-		if data[0] == '\x10':
+		sectype = ord(data[0])
+		section_cls = sections.get(sectype)
+		if not section_cls:
+			dump_hex_ascii(data)
+
+		if section_cls:
+			section = section_cls(data)
+			indents.append(sum(section.subsec_counts))
+			section.hexdump()
+			print indent + '- ' + str(section)
+		elif data[0] == '\x10':
 			subsecs, section_count = struct.unpack('<HI', data[2:8])
 			indents.append(subsecs)
 			end_offset = section_count * 24
