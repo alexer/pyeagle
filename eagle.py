@@ -387,6 +387,16 @@ class DeviceConnectionsSection(Section):
 	def __str__(self):
 		return '%s: %s' % (self.secname, self.connections)
 
+class SchemaConnectionSection(Section):
+	sectype = 0x3d
+	secname = 'Schema/connection'
+	def parse(self):
+		self.symno = self._get_uint16(4)
+		self.pin = self._get_uint16(8)
+
+	def __str__(self):
+		return '%s: symbol %d, pin %d' % (self.secname, self.symno, self.pin)
+
 class AttributeSection(Section):
 	sectype = 0x42
 	secname = 'Attribute'
@@ -398,7 +408,7 @@ class AttributeSection(Section):
 		return '%s %s on symbol %s' % (self.secname, self.attribute, self.symbol)
 
 sections = {}
-for section in [StartSection, Unknown11Section, Unknown12Section, LayerSection, XrefFormatSection, LibrarySection, DevicesSection, SymbolsSection, PackagesSection, SchemaSection, BoardSection, BoardNetSection, SymbolSection, PackageSection, SchemaNetSection, DeviceSymbolSection, BoardPackageSection, BoardPackage2Section, SchemaSymbol2Section, DevicePackageSection, DeviceSection, SchemaSymbolSection, SchemaBusSection, DeviceConnectionsSection, AttributeSection]:
+for section in [StartSection, Unknown11Section, Unknown12Section, LayerSection, XrefFormatSection, LibrarySection, DevicesSection, SymbolsSection, PackagesSection, SchemaSection, BoardSection, BoardNetSection, SymbolSection, PackageSection, SchemaNetSection, DeviceSymbolSection, BoardPackageSection, BoardPackage2Section, SchemaSymbol2Section, DevicePackageSection, DeviceSection, SchemaSymbolSection, SchemaBusSection, DeviceConnectionsSection, SchemaConnectionSection, AttributeSection]:
 	sections[section.sectype] = section
 
 def read_layers(f):
@@ -548,9 +558,6 @@ def read_layers(f):
 		elif data[0] == '\x27':
 			x, y = struct.unpack('<ii', data[4:12])
 			print indent + '- Junction at (%f", %f")' % (u2in(x), u2in(y))
-		elif data[0] == '\x3d':
-			sym, xxx, pin = struct.unpack('<HHH', data[4:10])
-			print indent + '- Schema/connection, symbol %d, pin %d' % (sym, pin)
 		elif data[0] == '\x3e':
 			pac, pin = struct.unpack('<HH', data[4:8])
 			print indent + '- Board/connection, package %d, pin %d' % (pac, pin)
