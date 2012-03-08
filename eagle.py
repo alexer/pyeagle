@@ -104,6 +104,36 @@ class UnknownSection(Section):
 	def parse(self): pass
 	def __str__(self): return self.secname
 
+class TextBaseSection(Section):
+	def parse(self):
+		# XXX: Clean these up
+		self.font = self._get_uint8(2)
+		self.layer = self._get_uint8(3)
+		self.x = self._get_int32(4)
+		self.y = self._get_int32(8)
+		self.size_2 = self._get_uint16(12)
+		self.ratio = (self._get_uint16(14) >> 2) & 0x1f
+		self.angle = self._get_uint16(16)
+		if self.sectype == 0x31:
+			self.text = self._get_name(18, 6)
+		elif self.sectype == 0x41:
+			self.name = self._get_name(18, 6)
+
+	def __str__(self):
+		font = 'vector proportional fixed'.split()[self.font]
+		# angle & 0x4000 => spin, no idea what that does though..
+		if self.sectype == 0x31:
+			angle = 360 * (self.angle & 0xfff) / 4096.
+		else:
+			angle = [0, 90, 180, 270][(self.angle & 0x0c00) >> 10]
+		if self.sectype == 0x31:
+			extra = ', text ' + self.text
+		elif self.sectype == 0x41:
+			extra = ', name ' + self.name
+		else:
+			extra = ''
+		return '%s: at (%f", %f") size %f", angle %s, layer %d, ratio %d%%, font %s%s' % (self.secname, u2in(self.x), u2in(self.y), u2in(self.size_2*2), angle, self.layer, self.ratio, font, extra)
+
 class StartSection(Section):
 	sectype = 0x10
 	secname = 'Start'
@@ -511,6 +541,22 @@ class SchemaSymbol2Section(Section):
 	def __str__(self):
 		return '%s: at (%f", %f"), angle %d, smashed %d' % (self.secname, u2in(self.x), u2in(self.y), self.angle, self.smashed)
 
+class TextSection(TextBaseSection):
+	sectype = 0x31
+	secname = 'Text'
+
+class NetBusLabelSection(TextBaseSection):
+	sectype = 0x33
+	secname = 'Net/bus label'
+
+class SmashedNameSection(TextBaseSection):
+	sectype = 0x34
+	secname = 'Smashed name'
+
+class SmashedValueSection(TextBaseSection):
+	sectype = 0x35
+	secname = 'Smashed value'
+
 class DevicePackageSection(Section):
 	sectype = 0x36
 	secname = 'Device/package'
@@ -596,9 +642,13 @@ class BoardConnectionSection(Section):
 	def __str__(self):
 		return '%s: package %d, pin %d' % (self.secname, self.pacno, self.pin)
 
-class AttributeSection(Section):
-	sectype = 0x42
+class AttributeSection(TextBaseSection):
+	sectype = 0x41
 	secname = 'Attribute'
+
+class AttributeValueSection(Section):
+	sectype = 0x42
+	secname = 'Attribute value'
 	def parse(self):
 		self.attribute = self._get_name(7, 17)
 		self.symbol = self._get_name(2, 5)
@@ -611,9 +661,9 @@ for section in [StartSection, Unknown11Section, Unknown12Section, LayerSection, 
 		SymbolsSection, PackagesSection, SchemaSection, BoardSection, BoardNetSection, SymbolSection, PackageSection, SchemaNetSection,
 		PathSection, PolygonSection, LineSection, CircleSection, RectangleSection, JunctionSection,
 		HoleSection, PadSection, SmdSection, PinSection, DeviceSymbolSection, BoardPackageSection, BoardPackage2Section,
-		SchemaSymbol2Section, DevicePackageSection, DeviceSection,
+		SchemaSymbol2Section, TextSection, NetBusLabelSection, SmashedNameSection, SmashedValueSection, DevicePackageSection, DeviceSection,
 		SchemaSymbolSection, SchemaBusSection, DeviceConnectionsSection, SchemaConnectionSection, BoardConnectionSection,
-		AttributeSection]:
+		AttributeSection, AttributeValueSection]:
 	sections[section.sectype] = section
 
 def read_layers(f):
@@ -654,23 +704,6 @@ def read_layers(f):
 				pin_bits = section.pin_bits
 			section.hexdump()
 			print indent + '- ' + str(section)
-		elif data[0] in ('\x31', '\x35', '\x34', '\x33', '\x41'):
-			font, layer, x, y, hs, xxx, angle = struct.unpack('<BBiiHHH', data[2:18])
-			font = 'vector proportional fixed'.split()[font]
-			ratio = (xxx >> 2) & 0x1f
-			# angle & 0x4000 => spin, no idea what that does though..
-			if data[0] == '\x31':
-				angle = 360 * (angle & 0xfff) / 4096.
-			else:
-				angle = '0 90 180 270'.split()[(angle & 0x0c00) >> 10]
-			if data[0] == '\x31':
-				extra = ', text ' + get_name(data[18:])
-			elif data[0] == '\x41':
-				extra = ', name ' + get_name(data[18:])
-			else:
-				extra = ''
-			title = {'\x31': 'Text', '\x35': 'Smashed value', '\x34': 'Smashed name', '\x33': 'Net/bus label', '\x41': 'Attribute'}[data[0]]
-			print indent + '- %s at (%f", %f") size %f", angle %s, layer %d, ratio %d%%, font %s%s' % (title, u2in(x), u2in(y), u2in(hs*2), angle, layer, ratio, font, extra)
 		else:
 			raise ValueError, 'Unknown section type'
 
