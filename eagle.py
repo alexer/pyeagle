@@ -223,6 +223,17 @@ class PackageSection(Section):
 	def __str__(self):
 		return '%s %s: desc %s, subsecs %d' % (self.secname, self.name, self.desc, self.subsecs)
 
+class DevicePackageSection(Section):
+	sectype = 0x36
+	secname = 'Device/package'
+	def parse(self):
+		self.pacno = self._get_uint16(4)
+		self.variant = self._get_name(19, 5)
+		self.table = self._get_name(6, 13)
+
+	def __str__(self):
+		return '%s %d: variant %s, table %s' % (self.secname, self.pacno, self.variant, self.table)
+
 class DeviceSection(Section):
 	sectype = 0x37
 	secname = 'Device'
@@ -251,7 +262,7 @@ class AttributeSection(Section):
 		return '%s %s on symbol %s' % (self.secname, self.attribute, self.symbol)
 
 sections = {}
-for section in [StartSection, Unknown11Section, Unknown12Section, LayerSection, XrefFormatSection, LibrarySection, DevicesSection, SymbolsSection, PackagesSection, SymbolSection, PackageSection, DeviceSection, AttributeSection]:
+for section in [StartSection, Unknown11Section, Unknown12Section, LayerSection, XrefFormatSection, LibrarySection, DevicesSection, SymbolsSection, PackagesSection, SymbolSection, PackageSection, DevicePackageSection, DeviceSection, AttributeSection]:
 	sections[section.sectype] = section
 
 def read_layers(f):
@@ -291,11 +302,6 @@ def read_layers(f):
 				pin_bits = section.pin_bits
 			section.hexdump()
 			print indent + '- ' + str(section)
-		elif data[0] == '\x36':
-			pacno = struct.unpack('<H', data[4:6])[0]
-			name = get_name(data[19:])
-			table = get_name(data[6:19])
-			print indent + '- Device/Package %d' % pacno, name, table
 		elif data[0] == '\x22': # Line or arc
 			# 4th byte is layer
 			# next 4 4-byte fields each contain 3 bytes of x1, y1, x2, y2 respectively
