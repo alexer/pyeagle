@@ -274,6 +274,16 @@ class BoardPackageSection(Section):
 	def __str__(self):
 		return '%s %d: at (%f", %f"), subsecs %d' % (self.secname, self.pacno, u2in(self.x), u2in(self.y), self.subsecs)
 
+class BoardPackage2Section(Section):
+	sectype = 0x2f
+	secname = 'Board/package'
+	def parse(self):
+		self.value = self._get_name(10, 14)
+		self.name = self._get_name(2, 8)
+
+	def __str__(self):
+		return '%s: name %s, value %s' % (self.secname, self.name, self.value)
+
 class SchemaSymbol2Section(Section):
 	sectype = 0x30
 	secname = 'Schema/symbol'
@@ -355,7 +365,7 @@ class AttributeSection(Section):
 		return '%s %s on symbol %s' % (self.secname, self.attribute, self.symbol)
 
 sections = {}
-for section in [StartSection, Unknown11Section, Unknown12Section, LayerSection, XrefFormatSection, LibrarySection, DevicesSection, SymbolsSection, PackagesSection, SchemaSection, BoardSection, SymbolSection, PackageSection, DeviceSymbolSection, BoardPackageSection, SchemaSymbol2Section, DevicePackageSection, DeviceSection, SchemaSymbolSection, DeviceConnectionsSection, AttributeSection]:
+for section in [StartSection, Unknown11Section, Unknown12Section, LayerSection, XrefFormatSection, LibrarySection, DevicesSection, SymbolsSection, PackagesSection, SchemaSection, BoardSection, SymbolSection, PackageSection, DeviceSymbolSection, BoardPackageSection, BoardPackage2Section, SchemaSymbol2Section, DevicePackageSection, DeviceSection, SchemaSymbolSection, DeviceConnectionsSection, AttributeSection]:
 	sections[section.sectype] = section
 
 def read_layers(f):
@@ -518,10 +528,6 @@ def read_layers(f):
 		elif data[0] == '\x3d':
 			sym, xxx, pin = struct.unpack('<HHH', data[4:10])
 			print indent + '- Schema/connection, symbol %d, pin %d' % (sym, pin)
-		elif data[0] == '\x2f':
-			value = get_name(data[10:24])
-			name = get_name(data[2:10])
-			print indent + '- Board/package, name %s, value %s' % (name, value)
 		elif data[0] == '\x1c':
 			subsecs = struct.unpack('<H', data[2:4])[0]
 			indents.append(subsecs)
