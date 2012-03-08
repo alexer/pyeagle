@@ -150,8 +150,18 @@ class XrefFormatSection(Section):
 	def __str__(self):
 		return '%s: %s' % (self.secname, self.format)
 
+class AttributeSection(Section):
+	sectype = 0x42
+	secname = 'Attribute'
+	def parse(self):
+		self.attribute = self._get_name(7, 17)
+		self.symbol = self._get_name(2, 5)
+
+	def __str__(self):
+		return '%s %s on symbol %s' % (self.secname, self.attribute, self.symbol)
+
 sections = {}
-for section in [StartSection, Unknown11Section, Unknown12Section, LayerSection, XrefFormatSection]:
+for section in [StartSection, Unknown11Section, Unknown12Section, LayerSection, XrefFormatSection, AttributeSection]:
 	sections[section.sectype] = section
 
 def read_layers(f):
@@ -391,10 +401,6 @@ def read_layers(f):
 			indents.append(subsecs)
 			name = get_name(data[4:])
 			print indent + '- Bus name %s' % (name, )
-		elif data[0] == '\x42':
-			attr = get_name(data[7:])
-			sym = get_name(data[2:7])
-			print indent + '- Attribute:', sym, attr
 		elif data[0] == '\x3d':
 			sym, xxx, pin = struct.unpack('<HHH', data[4:10])
 			print indent + '- Schema/connection, symbol %d, pin %d' % (sym, pin)
