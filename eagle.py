@@ -410,6 +410,23 @@ class PadSection(Section):
 	def __str__(self):
 		return '%s: at (%f", %f"), diameter %f", drill %f", angle %f, flags: %s, name %s' % (self.secname, u2in(self.x), u2in(self.y), u2in(self.diameter_2*2), u2in(self.drill_2*2), 360 * self.angle / 4096., ', '.join(get_flags(self.flags, pth_pad_flags)), self.name)
 
+class SmdSection(Section):
+	sectype = 0x2b
+	secname = 'SMD pad'
+	def parse(self):
+		self.roundness = self._get_uint8(2)
+		self.layer = self._get_uint8(3)
+		self.x = self._get_int32(4)
+		self.y = self._get_int32(8)
+		self.width_2 = self._get_uint16(12)
+		self.height_2 = self._get_uint16(14)
+		self.angle = self._get_uint16(16)
+		self.flags = self._get_uint8(18)
+		self.name = self._get_name(19, 5)
+
+	def __str__(self):
+		return '%s: at (%f", %f"), size %f" x %f", angle %f, layer %d, roundness %d%%, flags: %s, name %s' % (self.secname, u2in(self.x), u2in(self.y), u2in(self.width_2*2), u2in(self.height_2*2), 360 * self.angle / 4096., self.layer, self.roundness, ', '.join(get_flags(self.flags, smd_pad_flags)), self.name)
+
 class DeviceSymbolSection(Section):
 	sectype = 0x2d
 	secname = 'Device/symbol'
@@ -560,7 +577,7 @@ sections = {}
 for section in [StartSection, Unknown11Section, Unknown12Section, LayerSection, XrefFormatSection, LibrarySection, DevicesSection,
 		SymbolsSection, PackagesSection, SchemaSection, BoardSection, BoardNetSection, SymbolSection, PackageSection, SchemaNetSection,
 		PathSection, PolygonSection, LineSection, CircleSection, RectangleSection, JunctionSection,
-		PadSection, DeviceSymbolSection, BoardPackageSection, BoardPackage2Section,
+		PadSection, SmdSection, DeviceSymbolSection, BoardPackageSection, BoardPackage2Section,
 		SchemaSymbol2Section, DevicePackageSection, DeviceSection,
 		SchemaSymbolSection, SchemaBusSection, DeviceConnectionsSection, SchemaConnectionSection, BoardConnectionSection,
 		AttributeSection]:
@@ -604,10 +621,6 @@ def read_layers(f):
 				pin_bits = section.pin_bits
 			section.hexdump()
 			print indent + '- ' + str(section)
-		elif data[0] == '\x2b':
-			roundness, layer, x, y, hw, hh, angle, flags = struct.unpack('<BBiiHHHB', data[2:19])
-			name = get_name(data[19:])
-			print indent + '- SMD pad at (%f", %f") size %f" x %f", angle %f, layer %d, roundness %d%%, flags: %s, name %s' % (u2in(x), u2in(y), u2in(hw*2), u2in(hh*2), 360 * angle / 4096., layer, roundness, ', '.join(get_flags(flags, smd_pad_flags)), name)
 		elif data[0] == '\x28':
 			x, y, hw = struct.unpack('<iiI', data[4:16])
 			print indent + '- Hole at (%f", %f") drill %f"' % (u2in(x), u2in(y), u2in(hw*2))
