@@ -202,6 +202,18 @@ class PackagesSection(Section):
 	def __str__(self):
 		return '%s: libname %s, desc %s, subsecs %d, children %d' % (self.secname, self.libname, self.desc, self.subsecs, self.children)
 
+class SchemaSection(Section):
+	sectype = 0x1a
+	secname = 'Schema'
+	def parse(self):
+		self.symsubsecs = self._get_uint32(12)
+		self.bussubsecs = self._get_uint32(16)
+		self.netsubsecs = self._get_uint32(20)
+		self.subsec_counts = [self.symsubsecs, self.bussubsecs, self.netsubsecs]
+
+	def __str__(self):
+		return '%s: symsubsecs %d, bussubsecs %d, netsubsecs %d' % (self.secname, self.symsubsecs, self.bussubsecs, self.netsubsecs)
+
 class SymbolSection(Section):
 	sectype = 0x1d
 	secname = 'Symbol'
@@ -289,7 +301,7 @@ class AttributeSection(Section):
 		return '%s %s on symbol %s' % (self.secname, self.attribute, self.symbol)
 
 sections = {}
-for section in [StartSection, Unknown11Section, Unknown12Section, LayerSection, XrefFormatSection, LibrarySection, DevicesSection, SymbolsSection, PackagesSection, SymbolSection, PackageSection, DeviceSymbolSection, DevicePackageSection, DeviceSection, DeviceConnectionsSection, AttributeSection]:
+for section in [StartSection, Unknown11Section, Unknown12Section, LayerSection, XrefFormatSection, LibrarySection, DevicesSection, SymbolsSection, PackagesSection, SchemaSection, SymbolSection, PackageSection, DeviceSymbolSection, DevicePackageSection, DeviceSection, DeviceConnectionsSection, AttributeSection]:
 	sections[section.sectype] = section
 
 def read_layers(f):
@@ -421,10 +433,6 @@ def read_layers(f):
 			angle = '0 90 180 270'.split()[(flags2 & 0xc0) >> 6]
 			name = get_name(data[14:])
 			print indent + '- Pin at (%f", %f"), name %s, angle %s, direction %s, swaplevel %s, length %s, function %s, visible %s' % (u2in(x), u2in(y), name, angle, direction, swaplevel, length, function, visible)
-		elif data[0] == '\x1a':
-			symsubsecs, bussubsecs, netsubsecs = struct.unpack('<III', data[12:24])
-			indents.append(symsubsecs + bussubsecs + netsubsecs)
-			print indent + '- Schema'
 		elif data[0] == '\x1b':
 			subsecs = struct.unpack('<I', data[4:8])[0]
 			indents.append(subsecs)
