@@ -293,6 +293,20 @@ class PolygonSection(Section):
 	def __str__(self):
 		return '%s: width %f", spacing %f", pour %s, layer %d' % (self.secname, u2in(self.width_2*2), u2in(self.spacing_2*2), self.pour, self.layer)
 
+class CircleSection(Section):
+	sectype = 0x25
+	secname = 'Circle'
+	def parse(self):
+		self.layer = self._get_uint8(3)
+		self.x1 = self._get_int32(4)
+		self.y1 = self._get_int32(8)
+		self.r = self._get_int32(12)
+		self.width_2 = self._get_uint32(20)
+		#assert r == _get_int32(16) # Almost always the same...
+
+	def __str__(self):
+		return '%s: at (%f", %f"), radius %f", width %f", layer %d' % (self.secname, u2in(self.x1), u2in(self.y1), u2in(self.r), u2in(self.width_2*2), self.layer)
+
 class JunctionSection(Section):
 	sectype = 0x27
 	secname = 'Junction'
@@ -452,7 +466,7 @@ class AttributeSection(Section):
 sections = {}
 for section in [StartSection, Unknown11Section, Unknown12Section, LayerSection, XrefFormatSection, LibrarySection, DevicesSection,
 		SymbolsSection, PackagesSection, SchemaSection, BoardSection, BoardNetSection, SymbolSection, PackageSection, SchemaNetSection,
-		PathSection, PolygonSection, JunctionSection,
+		PathSection, PolygonSection, CircleSection, JunctionSection,
 		DeviceSymbolSection, BoardPackageSection, BoardPackage2Section,
 		SchemaSymbol2Section, DevicePackageSection, DeviceSection,
 		SchemaSymbolSection, SchemaBusSection, DeviceConnectionsSection, SchemaConnectionSection, BoardConnectionSection,
@@ -549,10 +563,6 @@ def read_layers(f):
 
 			#dump_hex(data[1:3])
 			#dump_hex(data[7::4])
-		elif data[0] == '\x25':
-			layer, x1, y1, r1, xxx, hw = struct.unpack('<biiiiI', data[3:])
-			#assert r1 == xxx # Almost always the same...
-			print indent + '- Circle at (%f", %f"), radius %f", width %f", layer %d' % (u2in(x1), u2in(y1), u2in(r1), u2in(hw*2), layer)
 		elif data[0] == '\x26':
 			layer, x1, y1, x2, y2, angle = struct.unpack('<biiiiH', data[3:-2])
 			print indent + '- Rectangle from (%f", %f") to (%f", %f"), angle %f, layer %d' % (u2in(x1), u2in(y1), u2in(x2), u2in(y2), 360 * angle / 4096., layer)
