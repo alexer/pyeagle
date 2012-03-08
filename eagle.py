@@ -418,7 +418,12 @@ class AttributeSection(Section):
 		return '%s %s on symbol %s' % (self.secname, self.attribute, self.symbol)
 
 sections = {}
-for section in [StartSection, Unknown11Section, Unknown12Section, LayerSection, XrefFormatSection, LibrarySection, DevicesSection, SymbolsSection, PackagesSection, SchemaSection, BoardSection, BoardNetSection, SymbolSection, PackageSection, SchemaNetSection, DeviceSymbolSection, BoardPackageSection, BoardPackage2Section, SchemaSymbol2Section, DevicePackageSection, DeviceSection, SchemaSymbolSection, SchemaBusSection, DeviceConnectionsSection, SchemaConnectionSection, BoardConnectionSection, AttributeSection]:
+for section in [StartSection, Unknown11Section, Unknown12Section, LayerSection, XrefFormatSection, LibrarySection, DevicesSection,
+		SymbolsSection, PackagesSection, SchemaSection, BoardSection, BoardNetSection, SymbolSection, PackageSection, SchemaNetSection,
+		DeviceSymbolSection, BoardPackageSection, BoardPackage2Section,
+		SchemaSymbol2Section, DevicePackageSection, DeviceSection,
+		SchemaSymbolSection, SchemaBusSection, DeviceConnectionsSection, SchemaConnectionSection, BoardConnectionSection,
+		AttributeSection]:
 	sections[section.sectype] = section
 
 def read_layers(f):
