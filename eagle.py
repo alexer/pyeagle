@@ -91,6 +91,8 @@ class Section:
 	def _get_uint16(self, pos): return struct.unpack('<H', self._get_bytes(pos, 2))[0]
 	def _get_uint8(self, pos):  return struct.unpack('<B', self._get_bytes(pos, 1))[0]
 
+	def _get_int32(self, pos): return struct.unpack('<i', self._get_bytes(pos, 4))[0]
+
 	def _get_uint8_mask(self, pos, mask):
 		self.known[pos] |= mask
 		return ord(self.data[pos]) & mask
@@ -223,6 +225,18 @@ class PackageSection(Section):
 	def __str__(self):
 		return '%s %s: desc %s, subsecs %d' % (self.secname, self.name, self.desc, self.subsecs)
 
+class DeviceSymbolSection(Section):
+	sectype = 0x2d
+	secname = 'Device/symbol'
+	def parse(self):
+		self.x = self._get_int32(4)
+		self.y = self._get_int32(8)
+		self.symno = self._get_uint16(14)
+		self.name = self._get_name(16, 8)
+
+	def __str__(self):
+		return '%s %d: at (%f", %f"), name %s' % (self.secname, self.symno, u2in(self.x), u2in(self.y), self.name)
+
 class DevicePackageSection(Section):
 	sectype = 0x36
 	secname = 'Device/package'
@@ -262,7 +276,7 @@ class AttributeSection(Section):
 		return '%s %s on symbol %s' % (self.secname, self.attribute, self.symbol)
 
 sections = {}
-for section in [StartSection, Unknown11Section, Unknown12Section, LayerSection, XrefFormatSection, LibrarySection, DevicesSection, SymbolsSection, PackagesSection, SymbolSection, PackageSection, DevicePackageSection, DeviceSection, AttributeSection]:
+for section in [StartSection, Unknown11Section, Unknown12Section, LayerSection, XrefFormatSection, LibrarySection, DevicesSection, SymbolsSection, PackagesSection, SymbolSection, PackageSection, DeviceSymbolSection, DevicePackageSection, DeviceSection, AttributeSection]:
 	sections[section.sectype] = section
 
 def read_layers(f):
@@ -382,10 +396,6 @@ def read_layers(f):
 			# angle & 0x4000 => spin, no idea what that does though..
 			name = get_name(data[18:])
 			print indent + '- Text at (%f", %f") size %f", angle %f, layer %d, ratio %d%%, font %s, text %s' % (u2in(x), u2in(y), u2in(hs*2), 360 * (angle & 0xfff) / 4096., layer, ratio, font, name)
-		elif data[0] == '\x2d':
-			x, y, xxx, symno = struct.unpack('<iiHH', data[4:16])
-			name = get_name(data[16:])
-			print indent + '- Device/Symbol %d at (%f", %f"), name %s' % (symno, u2in(x), u2in(y), name)
 		elif data[0] == '\x2c':
 			flags1, zero, x, y, flags2, swaplevel = struct.unpack('<BBiiBB', data[2:14])
 			assert flags1 & 0x3c == 0x00, 'Unknown flag bits: %s' % hex(flags1 & 0x3c)
