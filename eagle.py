@@ -214,6 +214,18 @@ class SchemaSection(Section):
 	def __str__(self):
 		return '%s: symsubsecs %d, bussubsecs %d, netsubsecs %d' % (self.secname, self.symsubsecs, self.bussubsecs, self.netsubsecs)
 
+class BoardSection(Section):
+	sectype = 0x1b
+	secname = 'Board'
+	def parse(self):
+		self.defsubsecs = self._get_uint32(12)
+		self.pacsubsecs = self._get_uint32(16)
+		self.netsubsecs = self._get_uint32(20)
+		self.subsec_counts = [self.defsubsecs, self.pacsubsecs, self.netsubsecs]
+
+	def __str__(self):
+		return '%s: defsubsecs %d, pacsubsecs %d, netsubsecs %d' % (self.secname, self.defsubsecs, self.pacsubsecs, self.netsubsecs)
+
 class SymbolSection(Section):
 	sectype = 0x1d
 	secname = 'Symbol'
@@ -301,7 +313,7 @@ class AttributeSection(Section):
 		return '%s %s on symbol %s' % (self.secname, self.attribute, self.symbol)
 
 sections = {}
-for section in [StartSection, Unknown11Section, Unknown12Section, LayerSection, XrefFormatSection, LibrarySection, DevicesSection, SymbolsSection, PackagesSection, SchemaSection, SymbolSection, PackageSection, DeviceSymbolSection, DevicePackageSection, DeviceSection, DeviceConnectionsSection, AttributeSection]:
+for section in [StartSection, Unknown11Section, Unknown12Section, LayerSection, XrefFormatSection, LibrarySection, DevicesSection, SymbolsSection, PackagesSection, SchemaSection, BoardSection, SymbolSection, PackageSection, DeviceSymbolSection, DevicePackageSection, DeviceSection, DeviceConnectionsSection, AttributeSection]:
 	sections[section.sectype] = section
 
 def read_layers(f):
@@ -433,10 +445,6 @@ def read_layers(f):
 			angle = '0 90 180 270'.split()[(flags2 & 0xc0) >> 6]
 			name = get_name(data[14:])
 			print indent + '- Pin at (%f", %f"), name %s, angle %s, direction %s, swaplevel %s, length %s, function %s, visible %s' % (u2in(x), u2in(y), name, angle, direction, swaplevel, length, function, visible)
-		elif data[0] == '\x1b':
-			subsecs = struct.unpack('<I', data[4:8])[0]
-			indents.append(subsecs)
-			print indent + '- Board'
 		elif data[0] == '\x38':
 			subsecs, xxx2, symno, xxx3, xxx4 = struct.unpack('<HHHBH', data[2:11])
 			indents.append(subsecs)
