@@ -281,6 +281,18 @@ class PathSection(Section):
 	def __str__(self):
 		return '%s: subsecs %d' % (self.secname, self.subsecs)
 
+class PolygonSection(Section):
+	sectype = 0x21
+	secname = 'Polygon'
+	def parse(self):
+		self.width_2 = self._get_uint16(12)
+		self.spacing_2 = self._get_uint16(14)
+		self.layer = self._get_uint8(18)
+		self.pour = 'hatch' if self._get_uint8_mask(19, 0x01) else 'solid'
+
+	def __str__(self):
+		return '%s: width %f", spacing %f", pour %s, layer %d' % (self.secname, u2in(self.width_2*2), u2in(self.spacing_2*2), self.pour, self.layer)
+
 class JunctionSection(Section):
 	sectype = 0x27
 	secname = 'Junction'
@@ -440,7 +452,7 @@ class AttributeSection(Section):
 sections = {}
 for section in [StartSection, Unknown11Section, Unknown12Section, LayerSection, XrefFormatSection, LibrarySection, DevicesSection,
 		SymbolsSection, PackagesSection, SchemaSection, BoardSection, BoardNetSection, SymbolSection, PackageSection, SchemaNetSection,
-		PathSection, JunctionSection,
+		PathSection, PolygonSection, JunctionSection,
 		DeviceSymbolSection, BoardPackageSection, BoardPackage2Section,
 		SchemaSymbol2Section, DevicePackageSection, DeviceSection,
 		SchemaSymbolSection, SchemaBusSection, DeviceConnectionsSection, SchemaConnectionSection, BoardConnectionSection,
@@ -544,9 +556,6 @@ def read_layers(f):
 		elif data[0] == '\x26':
 			layer, x1, y1, x2, y2, angle = struct.unpack('<biiiiH', data[3:-2])
 			print indent + '- Rectangle from (%f", %f") to (%f", %f"), angle %f, layer %d' % (u2in(x1), u2in(y1), u2in(x2), u2in(y2), 360 * angle / 4096., layer)
-		elif data[0] == '\x21':
-			hw, hs, xxx, layer, flags = struct.unpack('<HHHBB', data[12:20])
-			print indent + '- Polygon, width %f", spacing %f", pour %s, layer %d' % (u2in(hw*2), u2in(hs*2), 'hatch' if flags & 0x01 else 'solid', layer)
 		elif data[0] == '\x2a':
 			x, y, hw, hd, angle, flags = struct.unpack('<iiHHHB', data[4:19])
 			name = get_name(data[19:])
