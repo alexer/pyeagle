@@ -293,6 +293,70 @@ class PolygonSection(Section):
 	def __str__(self):
 		return '%s: width %f", spacing %f", pour %s, layer %d' % (self.secname, u2in(self.width_2*2), u2in(self.spacing_2*2), self.pour, self.layer)
 
+class LineSection(Section):
+	sectype = 0x22
+	secname = 'Line'
+	def parse(self):
+		self.layer = self._get_uint8(3)
+		self.width_2 = self._get_uint16(20)
+		self.linetype = self._get_uint8(23)
+
+		assert self.linetype in (0x00, 0x01, 0x81, 0x7e, 0x7f, 0x7b, 0x79, 0x78, 0x7a, 0x7d, 0x7c), 'Unknown line type: ' + hex(arctype)
+
+		if self.linetype != 0x01:
+			self.stflags = self._get_uint8_mask(22, 0x33)
+			self._get_zero_mask(22, 0xcc)
+
+			# Status flags; 0x20 == positive curve value
+			# Cap style and positive curve are present on bare lines too, that's probably a bug
+			self.style = {0x00: 'continuous', 0x01: 'longdash', 0x02: 'shortdash', 0x03: 'dashdot'}[self.stflags & 0x03]
+			self.cap = {0x00: 'round', 0x10: 'flat'}[self.stflags & 0x10]
+
+		if self.linetype == 0x81:
+			# 4 4-byte fields each contain 3 bytes of x1, y1, x2, y2 respectively.
+			# The 4th bytes of these fields combine to a 4-byte field whichs contains 3 bytes of c,
+			# which is the x or y coordinate of the arc center point, depending on the slope of the line.
+			# The 4th byte of c contains flags which tell which of the fields are negative (two's complement)
+			self._get_bytes(4, 15)
+
+			# Extend 3-byte coordinate fields to 4 bytes, taking the negative-flags into account
+			negflags = self._get_uint8_mask(19, 0x1f)
+			self._get_zero_mask(19, 0xe0)
+			ext = ['\xff' if negflags & (1 << i) else '\x00' for i in range(5)]
+			xydata = self.data[7:16:4] + ext[0] + self.data[4:7] + ext[1] + self.data[8:11] + ext[2] + self.data[12:15] + ext[3] + self.data[16:19] + ext[4]
+			c, x1, y1, x2, y2 = struct.unpack('<iiiii', xydata)
+
+			self.x1 = x1
+			self.y1 = y1
+			self.x2 = x2
+			self.y2 = y2
+
+			x3, y3 = (x1+x2)/2., (y1+y2)/2.
+			if abs(x2-x1) < abs(y2-y1):
+				self.cx = cx = c
+				self.cy = (x3-cx)*(x2-x1)/float(y2-y1)+y3
+				xst, yst = '', '?'
+			else:
+				self.cy = cy = c
+				self.cx = (y3-cy)*(y2-y1)/float(x2-x1)+x3
+				xst, yst = '?', ''
+		else:
+			self.x1 = self._get_int32(4)
+			self.y1 = self._get_int32(8)
+			self.x2 = self._get_int32(12)
+			self.y2 = self._get_int32(16)
+
+	def __str__(self):
+		if self.linetype == 0x00:
+			return 'Line: from (%f", %f") to (%f", %f"), width %f", layer %d, style %s' % (u2in(self.x1), u2in(self.y1), u2in(self.x2), u2in(self.y2), u2in(self.width_2*2), self.layer, self.style)
+		elif self.linetype == 0x01:
+			return 'Airwire: from (%f", %f") to (%f", %f"), width %f", layer %d' % (u2in(self.x1), u2in(self.y1), u2in(self.x2), u2in(self.y2), u2in(self.width_2*2), self.layer)
+		elif self.linetype == 0x81:
+			return 'Arc: from (%f", %f") to (%f", %f"), center at (%f", %f"), width %f", layer %d, style %s, cap %s' % (u2in(self.x1), u2in(self.y1), u2in(self.x2), u2in(self.y2), u2in(self.cx), u2in(self.cy), u2in(self.width_2*2), self.layer, self.style, self.cap)
+		else:
+			arctype = {0x78: '90 downleft', 0x79: '90 downright', 0x7a: '90 upright', 0x7b: '90 upleft', 0x7c: '180 left', 0x7d: '180 right', 0x7e: '180 down', 0x7f: '180 up'}[self.linetype]
+			return 'Arc: from (%f", %f") to (%f", %f"), type %s, width %f", layer %d, style %s, cap %s' % (u2in(self.x1), u2in(self.y1), u2in(self.x2), u2in(self.y2), arctype, u2in(self.width_2*2), self.layer, self.style, self.cap)
+
 class CircleSection(Section):
 	sectype = 0x25
 	secname = 'Circle'
@@ -480,7 +544,7 @@ class AttributeSection(Section):
 sections = {}
 for section in [StartSection, Unknown11Section, Unknown12Section, LayerSection, XrefFormatSection, LibrarySection, DevicesSection,
 		SymbolsSection, PackagesSection, SchemaSection, BoardSection, BoardNetSection, SymbolSection, PackageSection, SchemaNetSection,
-		PathSection, PolygonSection, CircleSection, RectangleSection, JunctionSection,
+		PathSection, PolygonSection, LineSection, CircleSection, RectangleSection, JunctionSection,
 		DeviceSymbolSection, BoardPackageSection, BoardPackage2Section,
 		SchemaSymbol2Section, DevicePackageSection, DeviceSection,
 		SchemaSymbolSection, SchemaBusSection, DeviceConnectionsSection, SchemaConnectionSection, BoardConnectionSection,
@@ -525,58 +589,6 @@ def read_layers(f):
 				pin_bits = section.pin_bits
 			section.hexdump()
 			print indent + '- ' + str(section)
-		elif data[0] == '\x22': # Line or arc
-			# 4th byte is layer
-			# next 4 4-byte fields each contain 3 bytes of x1, y1, x2, y2 respectively
-			# for arcs, the 4th bytes of these fields combine to a 4-byte field whichs contains 3 bytes of c
-			# c is the x or y coordinate of the arc center point, depending on the slope of the line
-			# the 4th byte of c (or the 20th byte) contains flags which tell which of the fields are negative (two's complement)
-			# then comes two bytes, which contain the width of the line divided by two
-			# next (second to last) byte contains some flags about the style of the arc
-
-			layer, hw, stflags, arctype = struct.unpack('<bHBB', data[3] + data[20:24])
-
-			if arctype != 0x01:
-				assert stflags & 0xcc == 0, 'Unknown bits set in style flags: ' + hex(stflags & 0xcc)
-			assert arctype in (0x00, 0x01, 0x81, 0x7e, 0x7f, 0x7b, 0x79, 0x78, 0x7a, 0x7d, 0x7c), 'Unknown arc type: ' + hex(arctype)
-
-			# Status flags; 0x20 == positive curve value
-			# Cap style and positive curve are present on bare lines too, that's probably a bug
-			style = {0x00: 'continuous', 0x01: 'longdash', 0x02: 'shortdash', 0x03: 'dashdot'}[stflags & 0x03]
-			cap = {0x00: 'round', 0x10: 'flat'}[stflags & 0x10]
-
-			if arctype == 0x00:
-				x1, y1, x2, y2 = struct.unpack('<iiii', data[4:20])
-				print indent + '- Line from (%f", %f") to (%f", %f"), width %f", layer %d, style %s' % (u2in(x1), u2in(y1), u2in(x2), u2in(y2), u2in(hw*2), layer, style)
-			elif arctype == 0x01:
-				x1, y1, x2, y2 = struct.unpack('<iiii', data[4:20])
-				print indent + '- Airwire from (%f", %f") to (%f", %f"), width %f", layer %d' % (u2in(x1), u2in(y1), u2in(x2), u2in(y2), u2in(hw*2), layer)
-			elif arctype == 0x81:
-				# Extend 3-byte coordinate fields to 4 bytes, taking the negative-flags into account
-				negflags = ord(data[19])
-				ext = ['\xff' if negflags & (1 << i) else '\x00' for i in range(5)]
-				xydata = data[7:16:4] + ext[0] + data[4:7] + ext[1] + data[8:11] + ext[2] + data[12:15] + ext[3] + data[16:19] + ext[4]
-				c, x1, y1, x2, y2 = struct.unpack('<iiiii', xydata)
-
-				assert negflags & 0xe0 == 0, 'Unknown bits set in negation flags: ' + hex(negflags & 0xe0)
-
-				x3, y3 = (x1+x2)/2., (y1+y2)/2.
-				if abs(x2-x1) < abs(y2-y1):
-					cx = c
-					cy = (x3-cx)*(x2-x1)/float(y2-y1)+y3
-					xst, yst = '', '?'
-				else:
-					cy = c
-					cx = (y3-cy)*(y2-y1)/float(x2-x1)+x3
-					xst, yst = '?', ''
-				print indent + '- Arc from (%f", %f") to (%f", %f"), center at (%f"%s, %f"%s), width %f", layer %d, style %s, cap %s' % (u2in(x1), u2in(y1), u2in(x2), u2in(y2), u2in(cx), xst, u2in(cy), yst, u2in(hw*2), layer, style, cap)
-			else:
-				arctypestr = {0x78: '90 downleft', 0x79: '90 downright', 0x7a: '90 upright', 0x7b: '90 upleft', 0x7c: '180 left', 0x7d: '180 right', 0x7e: '180 down', 0x7f: '180 up'}[arctype]
-				x1, y1, x2, y2 = struct.unpack('<iiii', data[4:20])
-				print indent + '- Arc from (%f", %f") to (%f", %f"), type %s, width %f", layer %d, style %s, cap %s' % (u2in(x1), u2in(y1), u2in(x2), u2in(y2), arctypestr, u2in(hw*2), layer, style, cap)
-
-			#dump_hex(data[1:3])
-			#dump_hex(data[7::4])
 		elif data[0] == '\x2a':
 			x, y, hw, hd, angle, flags = struct.unpack('<iiHHHB', data[4:19])
 			name = get_name(data[19:])
