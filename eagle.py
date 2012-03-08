@@ -261,6 +261,19 @@ class DeviceSymbolSection(Section):
 	def __str__(self):
 		return '%s %d: at (%f", %f"), name %s' % (self.secname, self.symno, u2in(self.x), u2in(self.y), self.name)
 
+class BoardPackageSection(Section):
+	sectype = 0x2e
+	secname = 'Board/package'
+	def parse(self):
+		self.subsecs = self._get_uint16(2)
+		self.x = self._get_int32(4)
+		self.y = self._get_int32(8)
+		self.pacno = self._get_uint16(14)
+		self.subsec_counts = [self.subsecs]
+
+	def __str__(self):
+		return '%s %d: at (%f", %f"), subsecs %d' % (self.secname, self.pacno, u2in(self.x), u2in(self.y), self.subsecs)
+
 class SchemaSymbol2Section(Section):
 	sectype = 0x30
 	secname = 'Schema/symbol'
@@ -342,7 +355,7 @@ class AttributeSection(Section):
 		return '%s %s on symbol %s' % (self.secname, self.attribute, self.symbol)
 
 sections = {}
-for section in [StartSection, Unknown11Section, Unknown12Section, LayerSection, XrefFormatSection, LibrarySection, DevicesSection, SymbolsSection, PackagesSection, SchemaSection, BoardSection, SymbolSection, PackageSection, DeviceSymbolSection, SchemaSymbol2Section, DevicePackageSection, DeviceSection, SchemaSymbolSection, DeviceConnectionsSection, AttributeSection]:
+for section in [StartSection, Unknown11Section, Unknown12Section, LayerSection, XrefFormatSection, LibrarySection, DevicesSection, SymbolsSection, PackagesSection, SchemaSection, BoardSection, SymbolSection, PackageSection, DeviceSymbolSection, BoardPackageSection, SchemaSymbol2Section, DevicePackageSection, DeviceSection, SchemaSymbolSection, DeviceConnectionsSection, AttributeSection]:
 	sections[section.sectype] = section
 
 def read_layers(f):
@@ -505,10 +518,6 @@ def read_layers(f):
 		elif data[0] == '\x3d':
 			sym, xxx, pin = struct.unpack('<HHH', data[4:10])
 			print indent + '- Schema/connection, symbol %d, pin %d' % (sym, pin)
-		elif data[0] == '\x2e':
-			subsecs, x, y, xxx, pacno = struct.unpack('<HIIHH', data[2:16])
-			indents.append(subsecs)
-			print indent + '- Board/package %d at (%f", %f")' % (pacno, u2in(x), u2in(y))
 		elif data[0] == '\x2f':
 			value = get_name(data[10:24])
 			name = get_name(data[2:10])
