@@ -141,8 +141,17 @@ class LayerSection(Section):
 	def __str__(self):
 		return '%s %s: layer %d, other %d, side %s, visible %d, fill %d, color %d' % (self.secname, self.name, self.layer, self.other, self.side, self.ulpvisible, self.fill, self.color)
 
+class XrefFormatSection(Section):
+	sectype = 0x14
+	secname = 'Xref format'
+	def parse(self):
+		self.format = self._get_name(19, 5)
+
+	def __str__(self):
+		return '%s: %s' % (self.secname, self.format)
+
 sections = {}
-for section in [StartSection, Unknown11Section, Unknown12Section, LayerSection]:
+for section in [StartSection, Unknown11Section, Unknown12Section, LayerSection, XrefFormatSection]:
 	sections[section.sectype] = section
 
 def read_layers(f):
@@ -332,9 +341,6 @@ def read_layers(f):
 			#	sym = slot >> pin_bits
 			#	pin = slot & ((1 << pin_bits) - 1)
 			print indent + '- Device/Connections:', [(slot >> pin_bits, slot & ((1 << pin_bits) - 1)) for slot in slots if slot]
-		elif data[0] == '\x14':
-			text = get_name(data[19:24])
-			print indent + '- Xref format:', text
 		elif data[0] == '\x1a':
 			symsubsecs, bussubsecs, netsubsecs = struct.unpack('<III', data[12:24])
 			indents.append(symsubsecs + bussubsecs + netsubsecs)
