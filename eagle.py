@@ -271,6 +271,16 @@ class SchemaNetSection(Section):
 	def __str__(self):
 		return '%s %s: subsecs %s' % (self.secname, self.name, self.subsecs)
 
+class PathSection(Section):
+	sectype = 0x20
+	secname = 'Path'
+	def parse(self):
+		self.subsecs = self._get_uint16(2)
+		self.subsec_counts = [self.subsecs]
+
+	def __str__(self):
+		return '%s: subsecs %d' % (self.secname, self.subsecs)
+
 class DeviceSymbolSection(Section):
 	sectype = 0x2d
 	secname = 'Device/symbol'
@@ -420,6 +430,7 @@ class AttributeSection(Section):
 sections = {}
 for section in [StartSection, Unknown11Section, Unknown12Section, LayerSection, XrefFormatSection, LibrarySection, DevicesSection,
 		SymbolsSection, PackagesSection, SchemaSection, BoardSection, BoardNetSection, SymbolSection, PackageSection, SchemaNetSection,
+		PathSection,
 		DeviceSymbolSection, BoardPackageSection, BoardPackage2Section,
 		SchemaSymbol2Section, DevicePackageSection, DeviceSection,
 		SchemaSymbolSection, SchemaBusSection, DeviceConnectionsSection, SchemaConnectionSection, BoardConnectionSection,
@@ -566,10 +577,6 @@ def read_layers(f):
 				extra = ''
 			title = {'\x35': 'Smashed value', '\x34': 'Smashed name', '\x33': 'Net/bus label', '\x41': 'Attribute'}[data[0]]
 			print indent + '- %s at (%f", %f") size %f", angle %s, layer %d, ratio %d%%, font %s%s' % (title, u2in(x), u2in(y), u2in(hs*2), angle, layer, ratio, font, extra)
-		elif data[0] == '\x20':
-			subsecs = struct.unpack('<H', data[2:4])[0]
-			indents.append(subsecs)
-			print indent + '- Path'
 		elif data[0] == '\x27':
 			x, y = struct.unpack('<ii', data[4:12])
 			print indent + '- Junction at (%f", %f")' % (u2in(x), u2in(y))
