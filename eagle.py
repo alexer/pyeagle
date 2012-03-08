@@ -261,6 +261,22 @@ class DeviceSymbolSection(Section):
 	def __str__(self):
 		return '%s %d: at (%f", %f"), name %s' % (self.secname, self.symno, u2in(self.x), u2in(self.y), self.name)
 
+class SchemaSymbol2Section(Section):
+	sectype = 0x30
+	secname = 'Schema/symbol'
+	def parse(self):
+		self.subsecs = self._get_uint16(2)
+		self.x = self._get_int32(4)
+		self.y = self._get_int32(8)
+		self.angle = [0, 90, 180, 270][self._get_uint8_mask(17, 0x0c) >> 2]
+		self._get_zero_mask(17, 0xf3)
+		self.smashed = self._get_uint8_mask(18, 0x01) == 0x01
+		self._get_zero_mask(18, 0xfe)
+		self.subsec_counts = [self.subsecs]
+
+	def __str__(self):
+		return '%s: at (%f", %f"), angle %d, smashed %d' % (self.secname, u2in(self.x), u2in(self.y), self.angle, self.smashed)
+
 class DevicePackageSection(Section):
 	sectype = 0x36
 	secname = 'Device/package'
@@ -326,7 +342,7 @@ class AttributeSection(Section):
 		return '%s %s on symbol %s' % (self.secname, self.attribute, self.symbol)
 
 sections = {}
-for section in [StartSection, Unknown11Section, Unknown12Section, LayerSection, XrefFormatSection, LibrarySection, DevicesSection, SymbolsSection, PackagesSection, SchemaSection, BoardSection, SymbolSection, PackageSection, DeviceSymbolSection, DevicePackageSection, DeviceSection, SchemaSymbolSection, DeviceConnectionsSection, AttributeSection]:
+for section in [StartSection, Unknown11Section, Unknown12Section, LayerSection, XrefFormatSection, LibrarySection, DevicesSection, SymbolsSection, PackagesSection, SchemaSection, BoardSection, SymbolSection, PackageSection, DeviceSymbolSection, SchemaSymbol2Section, DevicePackageSection, DeviceSection, SchemaSymbolSection, DeviceConnectionsSection, AttributeSection]:
 	sections[section.sectype] = section
 
 def read_layers(f):
@@ -458,14 +474,6 @@ def read_layers(f):
 			angle = '0 90 180 270'.split()[(flags2 & 0xc0) >> 6]
 			name = get_name(data[14:])
 			print indent + '- Pin at (%f", %f"), name %s, angle %s, direction %s, swaplevel %s, length %s, function %s, visible %s' % (u2in(x), u2in(y), name, angle, direction, swaplevel, length, function, visible)
-		elif data[0] == '\x30':
-			subsecs, x, y = struct.unpack('<Hii', data[2:12])
-			indents.append(subsecs)
-			flags1 = ord(data[17])
-			flags2 = ord(data[18])
-			angle = '0 90 180 270'.split()[(flags1 & 0x0c) >> 2]
-			smashed = (flags2 & 0x01) == 0x01
-			print indent + '- Schema/symbol at (%f", %f"), angle %s, smashed %s' % (u2in(x), u2in(y), angle, smashed)
 		elif data[0] in ('\x35', '\x34', '\x33', '\x41'):
 			font, layer, x, y, hs, xxx, angle = struct.unpack('<BBiiHHH', data[2:18])
 			font = 'vector proportional fixed'.split()[font]
