@@ -289,6 +289,19 @@ class DeviceSection(Section):
 	def __str__(self):
 		return '%s %s: prefix %s, desc %s, con_byte %d, pin_bits %d, symsubsecs %d, pacsubsecs %d' % (self.secname, self.name, self.prefix, self.desc, self.con_byte, self.pin_bits, self.symsubsecs, self.pacsubsecs)
 
+class SchemaSymbolSection(Section):
+	sectype = 0x38
+	secname = 'Schema/symbol'
+	def parse(self):
+		self.subsecs = self._get_uint16(2)
+		self.symno = self._get_uint16(6)
+		self.value = self._get_name(16, 8)
+		self.name = self._get_name(11, 5)
+		self.subsec_counts = [self.subsecs]
+
+	def __str__(self):
+		return '%s %d, name %s, value %s, subsecs %d' % (self.secname, self.symno, self.name, self.value, self.subsecs)
+
 class DeviceConnectionsSection(Section):
 	sectype = 0x3c
 	secname = 'Device/connections'
@@ -313,7 +326,7 @@ class AttributeSection(Section):
 		return '%s %s on symbol %s' % (self.secname, self.attribute, self.symbol)
 
 sections = {}
-for section in [StartSection, Unknown11Section, Unknown12Section, LayerSection, XrefFormatSection, LibrarySection, DevicesSection, SymbolsSection, PackagesSection, SchemaSection, BoardSection, SymbolSection, PackageSection, DeviceSymbolSection, DevicePackageSection, DeviceSection, DeviceConnectionsSection, AttributeSection]:
+for section in [StartSection, Unknown11Section, Unknown12Section, LayerSection, XrefFormatSection, LibrarySection, DevicesSection, SymbolsSection, PackagesSection, SchemaSection, BoardSection, SymbolSection, PackageSection, DeviceSymbolSection, DevicePackageSection, DeviceSection, SchemaSymbolSection, DeviceConnectionsSection, AttributeSection]:
 	sections[section.sectype] = section
 
 def read_layers(f):
@@ -445,12 +458,6 @@ def read_layers(f):
 			angle = '0 90 180 270'.split()[(flags2 & 0xc0) >> 6]
 			name = get_name(data[14:])
 			print indent + '- Pin at (%f", %f"), name %s, angle %s, direction %s, swaplevel %s, length %s, function %s, visible %s' % (u2in(x), u2in(y), name, angle, direction, swaplevel, length, function, visible)
-		elif data[0] == '\x38':
-			subsecs, xxx2, symno, xxx3, xxx4 = struct.unpack('<HHHBH', data[2:11])
-			indents.append(subsecs)
-			value = get_name(data[16:])
-			name = get_name(data[11:16])
-			print indent + '- Schema/symbol %d, name %s, value %s' % (symno, name, value)
 		elif data[0] == '\x30':
 			subsecs, x, y = struct.unpack('<Hii', data[2:12])
 			indents.append(subsecs)
