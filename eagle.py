@@ -654,23 +654,22 @@ def read_layers(f):
 				pin_bits = section.pin_bits
 			section.hexdump()
 			print indent + '- ' + str(section)
-		elif data[0] == '\x31':
+		elif data[0] in ('\x31', '\x35', '\x34', '\x33', '\x41'):
 			font, layer, x, y, hs, xxx, angle = struct.unpack('<BBiiHHH', data[2:18])
 			font = 'vector proportional fixed'.split()[font]
 			ratio = (xxx >> 2) & 0x1f
 			# angle & 0x4000 => spin, no idea what that does though..
-			name = get_name(data[18:])
-			print indent + '- Text at (%f", %f") size %f", angle %f, layer %d, ratio %d%%, font %s, text %s' % (u2in(x), u2in(y), u2in(hs*2), 360 * (angle & 0xfff) / 4096., layer, ratio, font, name)
-		elif data[0] in ('\x35', '\x34', '\x33', '\x41'):
-			font, layer, x, y, hs, xxx, angle = struct.unpack('<BBiiHHH', data[2:18])
-			font = 'vector proportional fixed'.split()[font]
-			ratio = (xxx >> 2) & 0x1f
-			angle = '0 90 180 270'.split()[(angle & 0x0c00) >> 10]
-			if data[0] == '\x41':
+			if data[0] == '\x31':
+				angle = 360 * (angle & 0xfff) / 4096.
+			else:
+				angle = '0 90 180 270'.split()[(angle & 0x0c00) >> 10]
+			if data[0] == '\x31':
+				extra = ', text ' + get_name(data[18:])
+			elif data[0] == '\x41':
 				extra = ', name ' + get_name(data[18:])
 			else:
 				extra = ''
-			title = {'\x35': 'Smashed value', '\x34': 'Smashed name', '\x33': 'Net/bus label', '\x41': 'Attribute'}[data[0]]
+			title = {'\x31': 'Text', '\x35': 'Smashed value', '\x34': 'Smashed name', '\x33': 'Net/bus label', '\x41': 'Attribute'}[data[0]]
 			print indent + '- %s at (%f", %f") size %f", angle %s, layer %d, ratio %d%%, font %s%s' % (title, u2in(x), u2in(y), u2in(hs*2), angle, layer, ratio, font, extra)
 		else:
 			raise ValueError, 'Unknown section type'
