@@ -438,6 +438,28 @@ class SmdSection(Section):
 	def __str__(self):
 		return '%s: at (%f", %f"), size %f" x %f", angle %f, layer %d, roundness %d%%, flags: %s, name %s' % (self.secname, u2in(self.x), u2in(self.y), u2in(self.width_2*2), u2in(self.height_2*2), 360 * self.angle / 4096., self.layer, self.roundness, ', '.join(get_flags(self.flags, smd_pad_flags)), self.name)
 
+class PinSection(Section):
+	sectype = 0x2c
+	secname = 'Pin'
+	def parse(self):
+		self.flags1 = self._get_uint8_mask(2, 0xc3)
+		self._get_zero_mask(2, 0x3c)
+		self._get_zero(3, 1)
+		self.x = self._get_int32(4)
+		self.y = self._get_int32(8)
+		self.flags2 = self._get_uint8(12)
+		self.swaplevel = self._get_uint8(13)
+		self.name = self._get_name(14, 10)
+
+		self.function = 'None Dot Clk DotClk'.split()[self.flags1 & 0x03]
+		self.visible = 'Off Pad Pin Both'.split()[(self.flags1 & 0xc0) >> 6]
+		self.direction = 'Nc In Out I/O OC Pwr Pas Hiz Sup'.split()[self.flags2 & 0x0f]
+		self.length = 'Point Short Middle Long'.split()[(self.flags2 & 0x30) >> 4]
+		self.angle = [0, 90, 180, 270][(self.flags2 & 0xc0) >> 6]
+
+	def __str__(self):
+		return '%s: at (%f", %f"), name %s, angle %s, direction %s, swaplevel %s, length %s, function %s, visible %s' % (self.secname, u2in(self.x), u2in(self.y), self.name, self.angle, self.direction, self.swaplevel, self.length, self.function, self.visible)
+
 class DeviceSymbolSection(Section):
 	sectype = 0x2d
 	secname = 'Device/symbol'
@@ -588,7 +610,7 @@ sections = {}
 for section in [StartSection, Unknown11Section, Unknown12Section, LayerSection, XrefFormatSection, LibrarySection, DevicesSection,
 		SymbolsSection, PackagesSection, SchemaSection, BoardSection, BoardNetSection, SymbolSection, PackageSection, SchemaNetSection,
 		PathSection, PolygonSection, LineSection, CircleSection, RectangleSection, JunctionSection,
-		HoleSection, PadSection, SmdSection, DeviceSymbolSection, BoardPackageSection, BoardPackage2Section,
+		HoleSection, PadSection, SmdSection, PinSection, DeviceSymbolSection, BoardPackageSection, BoardPackage2Section,
 		SchemaSymbol2Section, DevicePackageSection, DeviceSection,
 		SchemaSymbolSection, SchemaBusSection, DeviceConnectionsSection, SchemaConnectionSection, BoardConnectionSection,
 		AttributeSection]:
@@ -639,17 +661,6 @@ def read_layers(f):
 			# angle & 0x4000 => spin, no idea what that does though..
 			name = get_name(data[18:])
 			print indent + '- Text at (%f", %f") size %f", angle %f, layer %d, ratio %d%%, font %s, text %s' % (u2in(x), u2in(y), u2in(hs*2), 360 * (angle & 0xfff) / 4096., layer, ratio, font, name)
-		elif data[0] == '\x2c':
-			flags1, zero, x, y, flags2, swaplevel = struct.unpack('<BBiiBB', data[2:14])
-			assert flags1 & 0x3c == 0x00, 'Unknown flag bits: %s' % hex(flags1 & 0x3c)
-			assert zero == 0x00, 'Unknown data: %s' % hex(zero)
-			function = 'None Dot Clk DotClk'.split()[flags1 & 0x03]
-			visible = 'Off Pad Pin Both'.split()[(flags1 & 0xc0) >> 6]
-			direction = 'Nc In Out I/O OC Pwr Pas Hiz Sup'.split()[flags2 & 0x0f]
-			length = 'Point Short Middle Long'.split()[(flags2 & 0x30) >> 4]
-			angle = '0 90 180 270'.split()[(flags2 & 0xc0) >> 6]
-			name = get_name(data[14:])
-			print indent + '- Pin at (%f", %f"), name %s, angle %s, direction %s, swaplevel %s, length %s, function %s, visible %s' % (u2in(x), u2in(y), name, angle, direction, swaplevel, length, function, visible)
 		elif data[0] in ('\x35', '\x34', '\x33', '\x41'):
 			font, layer, x, y, hs, xxx, angle = struct.unpack('<BBiiHHH', data[2:18])
 			font = 'vector proportional fixed'.split()[font]
