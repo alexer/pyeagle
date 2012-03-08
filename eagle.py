@@ -187,6 +187,19 @@ class SymbolsSection(Section):
 	def __str__(self):
 		return '%s: libname %s, subsecs %d, children %d' % (self.secname, self.libname, self.subsecs, self.children)
 
+class PackagesSection(Section):
+	sectype = 0x19
+	secname = 'Packages'
+	def parse(self):
+		self.subsecs = self._get_uint32(4)
+		self.children = self._get_uint16(8)
+		self.libname = self._get_name(16, 8)
+		self.desc = self._get_name(10, 6)
+		self.subsec_counts = [self.subsecs]
+
+	def __str__(self):
+		return '%s: libname %s, desc %s, subsecs %d, children %d' % (self.secname, self.libname, self.desc, self.subsecs, self.children)
+
 class AttributeSection(Section):
 	sectype = 0x42
 	secname = 'Attribute'
@@ -198,7 +211,7 @@ class AttributeSection(Section):
 		return '%s %s on symbol %s' % (self.secname, self.attribute, self.symbol)
 
 sections = {}
-for section in [StartSection, Unknown11Section, Unknown12Section, LayerSection, XrefFormatSection, LibrarySection, DevicesSection, SymbolsSection, AttributeSection]:
+for section in [StartSection, Unknown11Section, Unknown12Section, LayerSection, XrefFormatSection, LibrarySection, DevicesSection, SymbolsSection, PackagesSection, AttributeSection]:
 	sections[section.sectype] = section
 
 def read_layers(f):
@@ -235,12 +248,6 @@ def read_layers(f):
 				init_names(f, end_offset)
 			section.hexdump()
 			print indent + '- ' + str(section)
-		elif data[0] == '\x19':
-			subsecs, children = struct.unpack('<IH', data[4:10])
-			indents.append(subsecs)
-			libname = get_name(data[16:])
-			desc = get_name(data[10:16])
-			print indent + '- Packages:', libname, desc, subsecs, children
 		elif data[0] == '\x1d':
 			subsecs = struct.unpack('<H', data[2:4])[0]
 			indents.append(subsecs)
