@@ -223,6 +223,23 @@ class PackageSection(Section):
 	def __str__(self):
 		return '%s %s: desc %s, subsecs %d' % (self.secname, self.name, self.desc, self.subsecs)
 
+class DeviceSection(Section):
+	sectype = 0x37
+	secname = 'Device'
+	def parse(self):
+		self.symsubsecs = self._get_uint16(2)
+		self.pacsubsecs = self._get_uint16(4)
+		self.con_byte = self._get_uint8_mask(7, 0x80) >> 7
+		self.pin_bits = self._get_uint8_mask(7, 0x0f)
+		self._get_zero_mask(7, 0x70)
+		self.name = self._get_name(18, 6)
+		self.desc = self._get_name(13, 5)
+		self.prefix = self._get_name(8, 5)
+		self.subsec_counts = [self.symsubsecs, self.pacsubsecs]
+
+	def __str__(self):
+		return '%s %s: prefix %s, desc %s, con_byte %d, pin_bits %d, symsubsecs %d, pacsubsecs %d' % (self.secname, self.name, self.prefix, self.desc, self.con_byte, self.pin_bits, self.symsubsecs, self.pacsubsecs)
+
 class AttributeSection(Section):
 	sectype = 0x42
 	secname = 'Attribute'
@@ -234,7 +251,7 @@ class AttributeSection(Section):
 		return '%s %s on symbol %s' % (self.secname, self.attribute, self.symbol)
 
 sections = {}
-for section in [StartSection, Unknown11Section, Unknown12Section, LayerSection, XrefFormatSection, LibrarySection, DevicesSection, SymbolsSection, PackagesSection, SymbolSection, PackageSection, AttributeSection]:
+for section in [StartSection, Unknown11Section, Unknown12Section, LayerSection, XrefFormatSection, LibrarySection, DevicesSection, SymbolsSection, PackagesSection, SymbolSection, PackageSection, DeviceSection, AttributeSection]:
 	sections[section.sectype] = section
 
 def read_layers(f):
@@ -269,17 +286,11 @@ def read_layers(f):
 			if sectype == 0x10:
 				end_offset = section.numsecs * 24
 				init_names(f, end_offset)
+			elif sectype == 0x37:
+				con_byte = section.con_byte
+				pin_bits = section.pin_bits
 			section.hexdump()
 			print indent + '- ' + str(section)
-		elif data[0] == '\x37':
-			symsubsecs, devsubsecs = struct.unpack('<HH', data[2:6])
-			indents.append(symsubsecs + devsubsecs)
-			con_byte = (ord(data[7]) & 0x80) >> 7
-			pin_bits = ord(data[7]) & 0xf
-			name = get_name(data[18:])
-			desc = get_name(data[13:18])
-			prefix = get_name(data[8:13])
-			print indent + '- Device:', name, prefix, desc, symsubsecs, devsubsecs
 		elif data[0] == '\x36':
 			pacno = struct.unpack('<H', data[4:6])[0]
 			name = get_name(data[19:])
