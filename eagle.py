@@ -119,8 +119,30 @@ class Unknown11Section(UnknownSection):
 class Unknown12Section(UnknownSection):
 	sectype = 0x12
 
+class LayerSection(Section):
+	sectype = 0x13
+	secname = 'Layer'
+	def parse(self):
+		self.flags = self._get_uint8_mask(2, 0x1e)
+		self._get_zero_mask(2, 0xe0)
+		self.layer = self._get_uint8(3)
+		self.other = self._get_uint8(4)
+		self.fill = self._get_uint8(5)
+		self.color = self._get_uint8(6)
+		self._get_zero(7, 8)
+		self.name = self._get_name(15, 9)
+		self.side = 'bottom' if self.flags & 0x10 else 'top'
+		assert self.flags & 0x0c in (0x00, 0x0c), 'I thought visibility always set two bits?'
+		self.visible = self.flags & 0x0c == 0x0c # whether objects on this layer are currently shown
+		self.available = self.flags & 0x02 == 0x02 # not available => not visible in layer display dialog at all
+		# The ulp "visible" flag is basically "visible and not hidden", or "flags & 0x0e == 0x0e"
+		self.ulpvisible = self.visible and self.available
+
+	def __str__(self):
+		return '%s %s: layer %d, other %d, side %s, visible %d, fill %d, color %d' % (self.secname, self.name, self.layer, self.other, self.side, self.ulpvisible, self.fill, self.color)
+
 sections = {}
-for section in [StartSection, Unknown11Section, Unknown12Section]:
+for section in [StartSection, Unknown11Section, Unknown12Section, LayerSection]:
 	sections[section.sectype] = section
 
 def read_layers(f):
@@ -157,21 +179,6 @@ def read_layers(f):
 				init_names(f, end_offset)
 			section.hexdump()
 			print indent + '- ' + str(section)
-		elif data[0] == '\x13':
-			c1, c2, flags, layer, opposite_layer, fill, color = struct.unpack('BBBBBBB', data[:7])
-			name = get_name(data[15:])
-			assert c1 == 0x13
-			assert c2 in (0x00, 0x80)
-			assert flags & 0x0c in (0x00, 0x0c), 'I thought visibility always set two bits?'
-			assert flags & 0xe0 == 0x00, 'Unknown flags: %s' % hex(flags & 0xe0)
-			assert data[7:15] == 8*'\x00'
-			side = 'bottom' if flags & 0x10 else 'top'
-			visible = flags & 0x0c == 0x0c # whether objects on this layer are currently shown
-			available = flags & 0x02 == 0x02 # not available => not visible in layer display dialog at all
-			unknown = flags & 0x01 == 0x01 # no idea what this is, it doesn't seem to do much anything...
-			# So the ulp "visible" flag is basically "visible and not hidden", or "flags & 0x0e == 0x0e"
-			ulpvisible = visible and available
-			print indent + '- Layer: fill=%d, color=%d, name=%s, layer=%d, other=%d, side=%s, unknown=%d, visible=%d' % (fill, color, name, layer, opposite_layer, side, unknown, ulpvisible)
 		elif data[0] == '\x15':
 			devsubsecs, symsubsecs, pacsubsecs = struct.unpack('<III', data[4:16])
 			indents.append(devsubsecs + symsubsecs + pacsubsecs)
