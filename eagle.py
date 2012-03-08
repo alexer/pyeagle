@@ -363,6 +363,17 @@ class SchemaSymbolSection(Section):
 	def __str__(self):
 		return '%s %d, name %s, value %s, subsecs %d' % (self.secname, self.symno, self.name, self.value, self.subsecs)
 
+class SchemaBusSection(Section):
+	sectype = 0x3a
+	secname = 'Schema/bus'
+	def parse(self):
+		self.subsecs = self._get_uint16(2)
+		self.name = self._get_name(4, 20)
+		self.subsec_counts = [self.subsecs]
+
+	def __str__(self):
+		return '%s %s: subsecs %d' % (self.secname, self.name, self.subsecs)
+
 class DeviceConnectionsSection(Section):
 	sectype = 0x3c
 	secname = 'Device/connections'
@@ -387,7 +398,7 @@ class AttributeSection(Section):
 		return '%s %s on symbol %s' % (self.secname, self.attribute, self.symbol)
 
 sections = {}
-for section in [StartSection, Unknown11Section, Unknown12Section, LayerSection, XrefFormatSection, LibrarySection, DevicesSection, SymbolsSection, PackagesSection, SchemaSection, BoardSection, BoardNetSection, SymbolSection, PackageSection, SchemaNetSection, DeviceSymbolSection, BoardPackageSection, BoardPackage2Section, SchemaSymbol2Section, DevicePackageSection, DeviceSection, SchemaSymbolSection, DeviceConnectionsSection, AttributeSection]:
+for section in [StartSection, Unknown11Section, Unknown12Section, LayerSection, XrefFormatSection, LibrarySection, DevicesSection, SymbolsSection, PackagesSection, SchemaSection, BoardSection, BoardNetSection, SymbolSection, PackageSection, SchemaNetSection, DeviceSymbolSection, BoardPackageSection, BoardPackage2Section, SchemaSymbol2Section, DevicePackageSection, DeviceSection, SchemaSymbolSection, SchemaBusSection, DeviceConnectionsSection, AttributeSection]:
 	sections[section.sectype] = section
 
 def read_layers(f):
@@ -537,11 +548,6 @@ def read_layers(f):
 		elif data[0] == '\x27':
 			x, y = struct.unpack('<ii', data[4:12])
 			print indent + '- Junction at (%f", %f")' % (u2in(x), u2in(y))
-		elif data[0] == '\x3a':
-			subsecs = struct.unpack('<H', data[2:4])[0]
-			indents.append(subsecs)
-			name = get_name(data[4:])
-			print indent + '- Bus name %s' % (name, )
 		elif data[0] == '\x3d':
 			sym, xxx, pin = struct.unpack('<HHH', data[4:10])
 			print indent + '- Schema/connection, symbol %d, pin %d' % (sym, pin)
