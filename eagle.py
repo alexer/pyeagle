@@ -395,6 +395,17 @@ class JunctionSection(Section):
 	def __str__(self):
 		return '%s: at (%f", %f")' % (self.secname, u2in(self.x), u2in(self.y))
 
+class HoleSection(Section):
+	sectype = 0x28
+	secname = 'Hole'
+	def parse(self):
+		self.x = self._get_int32(4)
+		self.y = self._get_int32(8)
+		self.width_2 = self._get_uint32(12)
+
+	def __str__(self):
+		return '%s: at (%f", %f") drill %f"' % (self.secname, u2in(self.x), u2in(self.y), u2in(self.width_2*2))
+
 class PadSection(Section):
 	sectype = 0x2a
 	secname = 'Pad'
@@ -577,7 +588,7 @@ sections = {}
 for section in [StartSection, Unknown11Section, Unknown12Section, LayerSection, XrefFormatSection, LibrarySection, DevicesSection,
 		SymbolsSection, PackagesSection, SchemaSection, BoardSection, BoardNetSection, SymbolSection, PackageSection, SchemaNetSection,
 		PathSection, PolygonSection, LineSection, CircleSection, RectangleSection, JunctionSection,
-		PadSection, SmdSection, DeviceSymbolSection, BoardPackageSection, BoardPackage2Section,
+		HoleSection, PadSection, SmdSection, DeviceSymbolSection, BoardPackageSection, BoardPackage2Section,
 		SchemaSymbol2Section, DevicePackageSection, DeviceSection,
 		SchemaSymbolSection, SchemaBusSection, DeviceConnectionsSection, SchemaConnectionSection, BoardConnectionSection,
 		AttributeSection]:
@@ -621,9 +632,6 @@ def read_layers(f):
 				pin_bits = section.pin_bits
 			section.hexdump()
 			print indent + '- ' + str(section)
-		elif data[0] == '\x28':
-			x, y, hw = struct.unpack('<iiI', data[4:16])
-			print indent + '- Hole at (%f", %f") drill %f"' % (u2in(x), u2in(y), u2in(hw*2))
 		elif data[0] == '\x31':
 			font, layer, x, y, hs, xxx, angle = struct.unpack('<BBiiHHH', data[2:18])
 			font = 'vector proportional fixed'.split()[font]
