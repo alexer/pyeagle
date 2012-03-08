@@ -231,10 +231,11 @@ class BoardNetSection(Section):
 	secname = 'Board/net'
 	def parse(self):
 		self.subsecs = self._get_uint16(2)
+		self.name = self._get_name(16, 8)
 		self.subsec_counts = [self.subsecs]
 
 	def __str__(self):
-		return '%s: subsecs %d' % (self.secname, self.subsecs)
+		return '%s %s: subsecs %d' % (self.secname, self.name, self.subsecs)
 
 class SymbolSection(Section):
 	sectype = 0x1d
