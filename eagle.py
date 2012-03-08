@@ -46,14 +46,6 @@ def read_layers(f):
 	The sections/whatever are 24 bytes long.
 	First byte is section type. Absolutely no idea what the second byte is, it seemed to be some kind of
 	further-sections-present-bit (0x00 = not present, 0x80 = is present) at first, but it clearly isn't.
-
-	Type 15: devices/symbols/packages
-	- contains 3 4-byte fields, each of which contains the number of entries in the next sections
-	Type 17: devices
-	- contains 2 4-byte fields, first is total number of descendants, second is number of direct children (i guess)
-	Type 18: symbols
-	- contains 2 4-byte fields, which are probably the same as above
-	Type 19: packages
 	"""
 	indents = []
 	con_byte = None
@@ -65,32 +57,13 @@ def read_layers(f):
 		# Some kind of sentinel?
 		if data == '\x13\x12\x99\x19':
 			break
-		# All values before the sentinel have zero in the second byte (except untiled, it has 128)
-		#if data[1] not in ('\x00', '\x80', '\x08'):
-		#	break
 		data += f.read(20)
-		#if data[0] in '\x15\x17\x18\x19' and data[1] == '\x80':
-		#	assert data[15:] == '\x00untitled'
 
 		dump_hex_ascii(data)
 
 		indents = [indent - 1 for indent in indents if indent > 0]
 		indent = '  ' * len(indents)
 
-		#0x13 = layer
-		#0x1d = symbol
-		#0x1e = package
-		#0x37 = device
-		#0x36 = ???
-
-		#0x21 = polygon
-		#0x22 = line/arc
-		#0x25 = circle
-		#0x26 = rectangle
-		#0x2a = pad
-		#0x2b = smd pad
-		#0x28 = hole
-		#0x31 = text
 		if data[0] == '\x10':
 			section_count = struct.unpack('<I', data[4:8])[0]
 			end_offset = section_count * 24
