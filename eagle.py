@@ -65,7 +65,8 @@ def read_layers(f):
 		indent = '  ' * len(indents)
 
 		if data[0] == '\x10':
-			section_count = struct.unpack('<I', data[4:8])[0]
+			subsecs, section_count = struct.unpack('<HI', data[2:8])
+			indents.append(subsecs)
 			end_offset = section_count * 24
 			init_names(f, end_offset)
 		elif data[0] == '\x11':
