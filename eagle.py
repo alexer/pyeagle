@@ -418,15 +418,16 @@ class LineSection(Section):
 				self.cy = (self.y1 + self.y2) / 2.
 
 	def __str__(self):
+		coords = 'from (%f", %f") to (%f", %f")' % (u2in(self.x1), u2in(self.y1), u2in(self.x2), u2in(self.y2))
 		if self.linetype == 0x00:
-			return 'Line: from (%f", %f") to (%f", %f"), width %f", layer %d, style %s' % (u2in(self.x1), u2in(self.y1), u2in(self.x2), u2in(self.y2), u2in(self.width_2*2), self.layer, self.style)
+			return 'Line: %s, width %f", layer %d, style %s' % (coords, u2in(self.width_2*2), self.layer, self.style)
 		elif self.linetype == 0x01:
-			return 'Airwire: from (%f", %f") to (%f", %f"), width %f", layer %d' % (u2in(self.x1), u2in(self.y1), u2in(self.x2), u2in(self.y2), u2in(self.width_2*2), self.layer)
-		elif self.linetype == 0x81:
-			return 'Arc: from (%f", %f") to (%f", %f"), center at (%f", %f"), width %f", layer %d, style %s, cap %s' % (u2in(self.x1), u2in(self.y1), u2in(self.x2), u2in(self.y2), u2in(self.cx), u2in(self.cy), u2in(self.width_2*2), self.layer, self.style, self.cap)
+			return 'Airwire: %s, width %f", layer %d' % (coords, u2in(self.width_2*2), self.layer)
 		else:
-			arctype = {0x78: '90 downleft', 0x79: '90 downright', 0x7a: '90 upright', 0x7b: '90 upleft', 0x7c: '180 left', 0x7d: '180 right', 0x7e: '180 down', 0x7f: '180 up'}[self.linetype]
-			return 'Arc: from (%f", %f") to (%f", %f"), type %s, width %f", layer %d, style %s, cap %s' % (u2in(self.x1), u2in(self.y1), u2in(self.x2), u2in(self.y2), arctype, u2in(self.width_2*2), self.layer, self.style, self.cap)
+			center = 'center at (%f", %f")' % (u2in(self.cx), u2in(self.cy))
+			arctype = {0x78: '90 downleft', 0x79: '90 downright', 0x7a: '90 upright', 0x7b: '90 upleft', 0x7c: '180 left', 0x7d: '180 right', 0x7e: '180 down', 0x7f: '180 up', 0x81: ''}[self.linetype]
+			arctype = (' ' if arctype else '') + arctype
+			return 'Arc%s: %s, %s, width %f", layer %d, style %s, cap %s' % (arctype, coords, center, u2in(self.width_2*2), self.layer, self.style, self.cap)
 
 class CircleSection(Section):
 	sectype = 0x25
