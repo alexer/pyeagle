@@ -44,7 +44,8 @@ u2in = lambda val: val/2.54/100/1000
 class Section:
 	sectype = None
 	secname = None
-	def __init__(self, data):
+	def __init__(self, parent, data):
+		self.parent = parent
 		self.data = data
 		self.known = [0x00] * 24
 		self.zero = [0x00] * 24
@@ -140,7 +141,8 @@ class StartSection(Section):
 	def parse(self):
 		self.subsecs = self._get_uint16(2)
 		self.numsecs = self._get_uint32(4)
-		self.subsec_counts = [self.subsecs]
+		# XXX: hack
+		self.subsec_counts = [self.subsecs, self.numsecs - self.subsecs - 1]
 
 	def __str__(self):
 		return '%s: subsecs %d, numsecs %d' % (self.secname, self.subsecs, self.numsecs)
@@ -613,11 +615,10 @@ class DeviceConnectionsSection(Section):
 	sectype = 0x3c
 	secname = 'Device/connections'
 	def parse(self):
-		# XXX: change to parent.con_byte when we have parents
-		fmt = '<' + ('22B' if con_byte else '11H')
+		fmt = '<' + ('22B' if self.parent.con_byte else '11H')
 		slots = struct.unpack(fmt, self._get_bytes(2, 22))
 		# connections[padno] = (symno, pinno)
-		self.connections = [(slot >> pin_bits, slot & ((1 << pin_bits) - 1)) for slot in slots]
+		self.connections = [(slot >> self.parent.pin_bits, slot & ((1 << self.parent.pin_bits) - 1)) for slot in slots]
 
 	def __str__(self):
 		return '%s: %s' % (self.secname, self.connections)
@@ -666,16 +667,45 @@ for section in [StartSection, Unknown11Section, Unknown12Section, LayerSection, 
 		AttributeSection, AttributeValueSection]:
 	sections[section.sectype] = section
 
+class Indenter:
+	def __init__(self, section):
+		self.section = section
+		self.counts = section.subsec_counts[:]
+		self.subsecs = [[] for count in self.counts]
+		section.subsections = self.subsecs[:]
+
+	def next_section(self):
+		while self.counts and self.counts[0] == 0:
+			self.counts.pop(0)
+			self.subsecs.pop(0)
+		if self.counts:
+			self.counts[0] -= 1
+
+	def add_subsection(self, subsec):
+		self.subsecs[0].append(subsec)
+
+	def __repr__(self):
+		return 'Indenter(%r, %r)' % (self.counts, self.section.secname)
+
 def read_layers(f):
-	global con_byte, pin_bits
 	"""
 	The sections/whatever are 24 bytes long.
 	First byte is section type. Absolutely no idea what the second byte is, it seemed to be some kind of
 	further-sections-present-bit (0x00 = not present, 0x80 = is present) at first, but it clearly isn't.
 	"""
-	indents = []
-	con_byte = None
-	pin_bits = None
+
+	data = f.read(24)
+	assert len(data) == 24
+	sectype = ord(data[0])
+	assert sectype == 0x10
+	root = sections[sectype](None, data)
+	end_offset = root.numsecs * 24
+	init_names(f, end_offset)
+
+	root.hexdump()
+	print '- ' + str(root)
+
+	indents = [Indenter(root)]
 	while True:
 		data = f.read(4)
 		if not data:
@@ -685,28 +715,32 @@ def read_layers(f):
 			break
 		data += f.read(20)
 
-		indents = [indent - 1 for indent in indents if indent > 0]
+		indents = [indent for indent in indents if sum(indent.counts) > 0]
+		for indent in indents:
+			indent.next_section()
 		indent = '  ' * len(indents)
+
+		parent = indents[-1]
 
 		sectype = ord(data[0])
 		section_cls = sections.get(sectype)
 		if section_cls:
-			section = section_cls(data)
-			indents.append(sum(section.subsec_counts))
-			if sectype == 0x10:
-				end_offset = section.numsecs * 24
-				init_names(f, end_offset)
-			elif sectype == 0x37:
-				con_byte = section.con_byte
-				pin_bits = section.pin_bits
+			section = section_cls(parent.section, data)
+			assert sum(section.subsec_counts) <= sum(parent.counts)
+			parent.add_subsection(section)
+			indents.append(Indenter(section))
 			section.hexdump()
 			print indent + '- ' + str(section)
 		else:
 			dump_hex_ascii(data)
 			raise ValueError, 'Unknown section type'
 
+	assert sum(sum(indent.counts) for indent in indents) == 0
+
 	dump_hex_ascii(data)
 	assert data == '\x13\x12\x99\x19'
+
+	return root
 
 _names = None
 def init_names(f, end_offset):
@@ -756,7 +790,7 @@ with file(sys.argv[1]) as f:
 	#data = f.read(6*16)
 	#print ''.join('%02x' % (ord(byte),) for byte in data)
 
-	read_layers(f)
+	root = read_layers(f)
 	read_name_array(f)
 	while True:
 		start_sentinel = f.read(4)
