@@ -303,12 +303,17 @@ class PackageSection(Section):
 	secname = 'Package'
 	def parse(self):
 		self.subsecs = self._get_uint16(2)
+		self.minx = self._get_int16(4)
+		self.miny = self._get_int16(6)
+		self.maxx = self._get_int16(8)
+		self.maxy = self._get_int16(10)
+		self._get_zero(12, 1)
 		self.name = self._get_name(18, 6)
 		self.desc = self._get_name(13, 5)
 		self.subsec_counts = [self.subsecs]
 
 	def __str__(self):
-		return '%s %s: desc %s, subsecs %d' % (self.secname, self.name, self.desc, self.subsecs)
+		return '%s %s: limits (%dmil, %dmil), (%dmil, %dmil), desc %s, subsecs %d' % (self.secname, self.name, self.minx, self.miny, self.maxx, self.maxy, self.desc, self.subsecs)
 
 class SchemaNetSection(Section):
 	sectype = 0x1f
