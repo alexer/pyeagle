@@ -93,6 +93,9 @@ class Section:
 	def _get_uint8(self, pos):  return struct.unpack('<B', self._get_bytes(pos, 1))[0]
 
 	def _get_int32(self, pos): return struct.unpack('<i', self._get_bytes(pos, 4))[0]
+	def _get_int16(self, pos): return struct.unpack('<h', self._get_bytes(pos, 2))[0]
+
+	def _get_double(self, pos): return struct.unpack('<d', self._get_bytes(pos, 8))[0]
 
 	def _get_uint8_mask(self, pos, mask):
 		self.known[pos] |= mask
@@ -150,8 +153,23 @@ class StartSection(Section):
 class Unknown11Section(UnknownSection):
 	sectype = 0x11
 
-class Unknown12Section(UnknownSection):
+grid_units = {0x00: 'mic', 0x05: 'mm', 0x0a: 'mil', 0x0f: 'in'}
+class GridSection(Section):
 	sectype = 0x12
+	secname = 'Grid'
+	def parse(self):
+		self.display = self._get_uint8_mask(2, 0x1)
+		self.style = 'lines dots'.split()[self._get_uint8_mask(2, 0x2) >> 1]
+		self._get_zero_mask(2, 0xfc)
+		self.unit = grid_units[self._get_uint8_mask(3, 0x0f)]
+		self.altunit = grid_units[self._get_uint8_mask(3, 0xf0) >> 4]
+		self.multiple = self._get_uint24(4)
+		self._get_zero(7, 1)
+		self.size = self._get_double(8)
+		self.altsize = self._get_double(16)
+
+	def __str__(self):
+		return '%s: display %s, style %s, size %s%s, multiple %d, alt %s%s' % (self.secname, self.display, self.style, self.size, self.unit, self.multiple, self.altsize, self.altunit)
 
 class LayerSection(Section):
 	sectype = 0x13
@@ -658,7 +676,7 @@ class AttributeValueSection(Section):
 		return '%s %s on symbol %s' % (self.secname, self.attribute, self.symbol)
 
 sections = {}
-for section in [StartSection, Unknown11Section, Unknown12Section, LayerSection, XrefFormatSection, LibrarySection, DevicesSection,
+for section in [StartSection, Unknown11Section, GridSection, LayerSection, XrefFormatSection, LibrarySection, DevicesSection,
 		SymbolsSection, PackagesSection, SchemaSection, BoardSection, BoardNetSection, SymbolSection, PackageSection, SchemaNetSection,
 		PathSection, PolygonSection, LineSection, CircleSection, RectangleSection, JunctionSection,
 		HoleSection, PadSection, SmdSection, PinSection, DeviceSymbolSection, BoardPackageSection, BoardPackage2Section,
