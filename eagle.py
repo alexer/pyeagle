@@ -809,30 +809,33 @@ sentinels = {
 	'\x10\x04\x00\x20': '\x98\xba\xdc\xfe',
 }
 
-with file(sys.argv[1]) as f:
-	#data = f.read(6*16)
-	#print ''.join('%02x' % (ord(byte),) for byte in data)
+if __name__ == '__main__':
+	fname = sys.argv[1]
 
-	root = read_layers(f)
-	read_name_array(f)
-	while True:
-		start_sentinel = f.read(4)
-		if not start_sentinel:
-			raise Exception, 'EOF'
-		if start_sentinel == '\x99\x99\x99\x99':
-			assert f.read(4) == '\x00\x00\x00\x00'
-			break
-		end_sentinel = sentinels[start_sentinel]
-		length = struct.unpack('<I', f.read(4))[0] - 4
-		data = f.read(length)
-		print 'Extra:', repr(data)
-		assert f.read(4) == end_sentinel
-		checksum = f.read(4)
+	with file(fname) as f:
+		#data = f.read(6*16)
+		#print ''.join('%02x' % (ord(byte),) for byte in data)
 
-	rest = f.read()
-	if rest:
-		print 'Extra data:'
-		dump_hex_ascii(rest)
+		root = read_layers(f)
+		read_name_array(f)
+		while True:
+			start_sentinel = f.read(4)
+			if not start_sentinel:
+				raise Exception, 'EOF'
+			if start_sentinel == '\x99\x99\x99\x99':
+				assert f.read(4) == '\x00\x00\x00\x00'
+				break
+			end_sentinel = sentinels[start_sentinel]
+			length = struct.unpack('<I', f.read(4))[0] - 4
+			data = f.read(length)
+			print 'Extra:', repr(data)
+			assert f.read(4) == end_sentinel
+			checksum = f.read(4)
 
-assert _nameind == len(_names)
+		rest = f.read()
+		if rest:
+			print 'Extra data:'
+			dump_hex_ascii(rest)
+
+	assert _nameind == len(_names)
 
