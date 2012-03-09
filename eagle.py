@@ -362,8 +362,8 @@ class LineSection(Section):
 			self.stflags = self._get_uint8_mask(22, 0x33)
 			self._get_zero_mask(22, 0xcc)
 
-			# Status flags; 0x20 == positive curve value
 			# Cap style and positive curve are present on bare lines too, that's probably a bug
+			self.clockwise = bool(self.stflags & 0x20)
 			self.style = {0x00: 'continuous', 0x01: 'longdash', 0x02: 'shortdash', 0x03: 'dashdot'}[self.stflags & 0x03]
 			self.cap = {0x00: 'round', 0x10: 'flat'}[self.stflags & 0x10]
 
@@ -400,6 +400,22 @@ class LineSection(Section):
 			self.y1 = self._get_int32(8)
 			self.x2 = self._get_int32(12)
 			self.y2 = self._get_int32(16)
+
+			if self.linetype == 0x78:
+				self.cx = min(self.x1, self.x2)
+				self.cy = min(self.y1, self.y2)
+			elif self.linetype == 0x79:
+				self.cx = max(self.x1, self.x2)
+				self.cy = min(self.y1, self.y2)
+			elif self.linetype == 0x7a:
+				self.cx = max(self.x1, self.x2)
+				self.cy = max(self.y1, self.y2)
+			elif self.linetype == 0x7b:
+				self.cx = min(self.x1, self.x2)
+				self.cy = max(self.y1, self.y2)
+			elif self.linetype in (0x7c, 0x7d, 0x7e, 0x7f):
+				self.cx = (self.x1 + self.x2) / 2.
+				self.cy = (self.y1 + self.y2) / 2.
 
 	def __str__(self):
 		if self.linetype == 0x00:
