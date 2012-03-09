@@ -810,9 +810,14 @@ def get_name(name):
 	# Deleting a text from the beginning does not affect the random bytes of the following entries
 	# Thus, there really can't be any position information there
 	# Thus, we'd just better handle every possible text field...
-	if name[0] != '\x7f':
-		return '\x1b[32m' + repr(name.rstrip('\x00')) + '\x1b[m'
-	return '\x1b[31m' + repr(get_next_name()) + '\x1b[m'
+	if __name__ == '__main__':
+		if name[0] != '\x7f':
+			return '\x1b[32m' + repr(name.rstrip('\x00')) + '\x1b[m'
+		return '\x1b[31m' + repr(get_next_name()) + '\x1b[m'
+	else:
+		if name[0] != '\x7f':
+			return name.rstrip('\x00')
+		return get_next_name()
 
 def read_name_array(f):
 	size = struct.unpack('<I', f.read(4))[0]
