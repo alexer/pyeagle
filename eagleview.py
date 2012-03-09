@@ -49,6 +49,8 @@ class EagleDrawing(BaseDrawing):
 			self.draw_rectangle(cr, item)
 		elif isinstance(item, eagle.PinSection):
 			self.draw_pin(cr, item)
+		elif isinstance(item, eagle.PadSection):
+			self.draw_pad(cr, item)
 		#else:
 		#	raise TypeError, 'Unknown section: ' + item.secname
 
@@ -100,6 +102,12 @@ class EagleDrawing(BaseDrawing):
 		cr.set_line_width(1)
 		cr.stroke()
 		cr.restore()
+
+	def draw_pad(self, cr, item):
+		cr.set_fill_rule(cairo.FILL_RULE_EVEN_ODD)
+		cr.arc(item.x, item.y, item.diameter_2 or item.drill_2*1.5, 0, 2*math.pi)
+		cr.arc(item.x, item.y, item.drill_2, 0, 2*math.pi)
+		cr.fill()
 
 class EagleGTK(CairoGTK):
 	ypol = -1
