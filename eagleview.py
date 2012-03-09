@@ -32,23 +32,32 @@ class EagleDrawing(BaseDrawing):
 		cr.rel_line_to(*cr.device_to_user_distance(20, 0))
 		cr.stroke()
 
+		cr.set_line_cap(cairo.LINE_CAP_ROUND)
+
 		self.draw_item(cr, self.module)
 
 	def draw_item(self, cr, item):
 		if isinstance(item, eagle.SymbolSection):
 			self.draw_symbol(cr, item)
+		elif isinstance(item, eagle.PackageSection):
+			self.draw_package(cr, item)
 		elif isinstance(item, eagle.LineSection):
 			self.draw_line(cr, item)
 		elif isinstance(item, eagle.CircleSection):
 			self.draw_circle(cr, item)
+		elif isinstance(item, eagle.RectangleSection):
+			self.draw_rectangle(cr, item)
 		elif isinstance(item, eagle.PinSection):
 			self.draw_pin(cr, item)
-		else:
-			raise TypeError, 'Unknown section: ' + self.module.secname
+		#else:
+		#	raise TypeError, 'Unknown section: ' + item.secname
 
 	def draw_symbol(self, cr, sym):
-		cr.set_line_cap(cairo.LINE_CAP_ROUND)
 		for item in sym.subsections[0]:
+			self.draw_item(cr, item)
+
+	def draw_package(self, cr, pac):
+		for item in pac.subsections[0]:
 			self.draw_item(cr, item)
 
 	def draw_line(self, cr, item):
@@ -71,6 +80,10 @@ class EagleDrawing(BaseDrawing):
 		cr.set_line_width(item.width_2*2)
 		cr.arc(item.x1, item.y1, item.r, 0, 2*math.pi)
 		cr.stroke()
+
+	def draw_rectangle(self, cr, item):
+		cr.rectangle(item.x1, item.y1, item.x2-item.x1, item.y2-item.y1)
+		cr.fill()
 
 	def draw_pin(self, cr, item):
 		length = 'Point Short Middle Long'.split().index(item.length)*25400
