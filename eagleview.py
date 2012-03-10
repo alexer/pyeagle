@@ -13,7 +13,7 @@ class EagleDrawing(BaseDrawing):
 		self.module = module
 
 	def get_size(self):
-		return ((-10**6, -10**6), (10**6, 10**6))
+		return ((self.module.minx*254, self.module.miny*254), (self.module.maxx*254, self.module.maxy*254))
 		points = self.points()
 		minx, miny = maxx, maxy = points.next()
 		for x, y in points:
