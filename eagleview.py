@@ -80,6 +80,8 @@ class EagleDrawing(BaseDrawing):
 		item2 = [item for item in item1.subsections[0] if isinstance(item, eagle.SchemaSymbol2Section)][0]
 		cr.save()
 		cr.translate(item2.x, item2.y)
+		if item2.mirrored:
+			cr.scale(-1, 1)
 		cr.rotate(math.radians(item2.angle))
 		lib = self.libraries[item1.libno-1]
 		syms = lib.subsections[1][0]
