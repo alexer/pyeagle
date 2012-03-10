@@ -112,9 +112,9 @@ class EagleDrawing(BaseDrawing):
 	def draw_boardpackage(self, cr, item):
 		cr.save()
 		cr.translate(item.x, item.y)
-		#if item.mirrored:
-		#	cr.scale(-1, 1)
-		#cr.rotate(math.radians(item.angle))
+		if item.mirrored:
+			cr.scale(-1, 1)
+		cr.rotate(math.radians(360 * item.angle / 4096.))
 		brd = self.module
 		pacs = brd.subsections[0][item.libno-1]
 		pac = pacs.subsections[0][item.pacno-1]

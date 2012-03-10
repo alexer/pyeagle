@@ -567,10 +567,13 @@ class BoardPackageSection(Section):
 		self.y = self._get_int32(8)
 		self.libno = self._get_uint16(12)
 		self.pacno = self._get_uint16(14)
+		self.angle = self._get_uint16(16)
+		self.mirrored = bool(self.angle & 0x1000)
+		self.angle &= 0x0fff
 		self.subsec_counts = [self.subsecs]
 
 	def __str__(self):
-		return '%s %d@%d: at (%f", %f"), subsecs %d' % (self.secname, self.pacno, self.libno, u2in(self.x), u2in(self.y), self.subsecs)
+		return '%s %d@%d: at (%f", %f"), angle %f, mirror %d, subsecs %d' % (self.secname, self.pacno, self.libno, u2in(self.x), u2in(self.y), 360 * self.angle / 4096., self.mirrored, self.subsecs)
 
 class BoardPackage2Section(Section):
 	sectype = 0x2f
