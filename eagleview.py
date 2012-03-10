@@ -8,7 +8,8 @@ from cairogtk import CairoGTK, BaseDrawing
 import eagle
 
 class EagleDrawing(BaseDrawing):
-	def __init__(self, module):
+	def __init__(self, libraries, module):
+		self.libraries = libraries
 		self.module = module
 
 	def get_size(self):
@@ -37,7 +38,11 @@ class EagleDrawing(BaseDrawing):
 		self.draw_item(cr, self.module)
 
 	def draw_item(self, cr, item):
-		if isinstance(item, eagle.SymbolSection):
+		if isinstance(item, eagle.SchemaSection):
+			self.draw_schema(cr, item)
+		elif isinstance(item, eagle.SchemaSymbolSection):
+			self.draw_schemasymbol(cr, item)
+		elif isinstance(item, eagle.SymbolSection):
 			self.draw_symbol(cr, item)
 		elif isinstance(item, eagle.PackageSection):
 			self.draw_package(cr, item)
@@ -54,6 +59,10 @@ class EagleDrawing(BaseDrawing):
 		#else:
 		#	raise TypeError, 'Unknown section: ' + item.secname
 
+	def draw_schema(self, cr, sch):
+		for item in sch.subsections[0]:
+			self.draw_item(cr, item)
+
 	def draw_symbol(self, cr, sym):
 		for item in sym.subsections[0]:
 			self.draw_item(cr, item)
@@ -61,6 +70,17 @@ class EagleDrawing(BaseDrawing):
 	def draw_package(self, cr, pac):
 		for item in pac.subsections[0]:
 			self.draw_item(cr, item)
+
+	def draw_schemasymbol(self, cr, item1):
+		item2 = [item for item in item1.subsections[0] if isinstance(item, eagle.SchemaSymbol2Section)][0]
+		cr.save()
+		cr.translate(item2.x, item2.y)
+		cr.rotate(math.radians(item2.angle))
+		lib = self.libraries[item1.libno-1]
+		syms = lib.subsections[1][0]
+		sym = syms.subsections[0][item1.symno-1]
+		self.draw_symbol(cr, sym)
+		cr.restore()
 
 	def draw_line(self, cr, item):
 		if item.linetype == 0x00:
@@ -119,11 +139,14 @@ if __name__ == "__main__":
 
 	with file(library) as f:
 		root = eagle.read_layers(f)
-		lib = [subsec for subsec in root.subsections[1] if isinstance(subsec, eagle.LibrarySection)][0]
-		items = lib.subsections['device symbol package'.split().index(itemtype)][0]
-		item = [item for item in items.subsections[0] if item.name == name][0]
+		libs = [subsec for subsec in root.subsections[1] if isinstance(subsec, eagle.LibrarySection)]
+		if itemtype == 'schema':
+			item = [subsec for subsec in root.subsections[1] if isinstance(subsec, eagle.SchemaSection)][0]
+		else:
+			items = libs[0].subsections['device symbol package'.split().index(itemtype)][0]
+			item = [item for item in items.subsections[0] if item.name == name][0]
 
-	widget = EagleGTK(EagleDrawing(item))
+	widget = EagleGTK(EagleDrawing(libs, item))
 
 	window = gtk.Window()
 	window.connect("delete-event", gtk.main_quit)
