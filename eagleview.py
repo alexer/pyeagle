@@ -102,6 +102,15 @@ class EagleDrawing(BaseDrawing):
 			cr.move_to(item.x1, item.y1)
 			cr.line_to(item.x2, item.y2)
 			cr.stroke()
+		elif item.linetype == 0x01:
+			cr.save()
+			cr.set_source_rgb(1.0, 1.0, 0.0)
+			cr.move_to(item.x1, item.y1)
+			cr.line_to(item.x2, item.y2)
+			cr.identity_matrix()
+			cr.set_line_width(1)
+			cr.stroke()
+			cr.restore()
 		elif item.linetype in (0x78, 0x79, 0x7a, 0x7b, 0x7c, 0x7d, 0x7e, 0x7f, 0x81):
 			r = math.sqrt((item.x1-item.cx)**2 + (item.y1-item.cy)**2)
 			start = math.atan2(item.y1-item.cy, item.x1-item.cx)
