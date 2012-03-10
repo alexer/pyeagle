@@ -257,13 +257,17 @@ class SchemaSection(Section):
 	secname = 'Schema'
 	def parse(self):
 		self.drawsubsecs = self._get_uint16(2)
+		self.minx = self._get_int16(4)
+		self.miny = self._get_int16(6)
+		self.maxx = self._get_int16(8)
+		self.maxy = self._get_int16(10)
 		self.symsubsecs = self._get_uint32(12)
 		self.bussubsecs = self._get_uint32(16)
 		self.netsubsecs = self._get_uint32(20)
 		self.subsec_counts = [self.drawsubsecs, self.symsubsecs, self.bussubsecs, self.netsubsecs]
 
 	def __str__(self):
-		return '%s: drawsubsecs %d, symsubsecs %d, bussubsecs %d, netsubsecs %d' % (self.secname, self.drawsubsecs, self.symsubsecs, self.bussubsecs, self.netsubsecs)
+		return '%s: limits (%dmil, %dmil), (%dmil, %dmil), drawsubsecs %d, symsubsecs %d, bussubsecs %d, netsubsecs %d' % (self.secname, self.minx, self.miny, self.maxx, self.maxy, self.drawsubsecs, self.symsubsecs, self.bussubsecs, self.netsubsecs)
 
 class BoardSection(Section):
 	sectype = 0x1b
@@ -293,11 +297,15 @@ class SymbolSection(Section):
 	secname = 'Symbol'
 	def parse(self):
 		self.subsecs = self._get_uint16(2)
+		self.minx = self._get_int16(4)
+		self.miny = self._get_int16(6)
+		self.maxx = self._get_int16(8)
+		self.maxy = self._get_int16(10)
 		self.name = self._get_name(16, 8)
 		self.subsec_counts = [self.subsecs]
 
 	def __str__(self):
-		return '%s %s: subsecs %d' % (self.secname, self.name, self.subsecs)
+		return '%s %s: limits (%dmil, %dmil), (%dmil, %dmil), subsecs %d' % (self.secname, self.name, self.minx, self.miny, self.maxx, self.maxy, self.subsecs)
 
 class PackageSection(Section):
 	sectype = 0x1e
