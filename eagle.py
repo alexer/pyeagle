@@ -565,11 +565,12 @@ class BoardPackageSection(Section):
 		self.subsecs = self._get_uint16(2)
 		self.x = self._get_int32(4)
 		self.y = self._get_int32(8)
+		self.libno = self._get_uint16(12)
 		self.pacno = self._get_uint16(14)
 		self.subsec_counts = [self.subsecs]
 
 	def __str__(self):
-		return '%s %d: at (%f", %f"), subsecs %d' % (self.secname, self.pacno, u2in(self.x), u2in(self.y), self.subsecs)
+		return '%s %d@%d: at (%f", %f"), subsecs %d' % (self.secname, self.pacno, self.libno, u2in(self.x), u2in(self.y), self.subsecs)
 
 class BoardPackage2Section(Section):
 	sectype = 0x2f
