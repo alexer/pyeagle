@@ -575,13 +575,14 @@ class SchemaSymbol2Section(Section):
 		self.x = self._get_int32(4)
 		self.y = self._get_int32(8)
 		self.angle = [0, 90, 180, 270][self._get_uint8_mask(17, 0x0c) >> 2]
-		self._get_zero_mask(17, 0xf3)
+		self.mirrored = bool(self._get_uint8_mask(17, 0x10))
+		self._get_zero_mask(17, 0xe3)
 		self.smashed = self._get_uint8_mask(18, 0x01) == 0x01
 		self._get_zero_mask(18, 0xfe)
 		self.subsec_counts = [self.subsecs]
 
 	def __str__(self):
-		return '%s: at (%f", %f"), angle %d, smashed %d' % (self.secname, u2in(self.x), u2in(self.y), self.angle, self.smashed)
+		return '%s: at (%f", %f"), angle %d, mirror %d, smashed %d' % (self.secname, u2in(self.x), u2in(self.y), self.angle, self.mirrored, self.smashed)
 
 class TextSection(TextBaseSection):
 	sectype = 0x31
