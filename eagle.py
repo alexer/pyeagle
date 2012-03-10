@@ -118,10 +118,13 @@ class TextBaseSection(Section):
 		self.size_2 = self._get_uint16(12)
 		self.ratio = (self._get_uint16(14) >> 2) & 0x1f
 		self.angle = self._get_uint16(16)
+		text = self._get_name(18, 6)
 		if self.sectype == 0x31:
-			self.text = self._get_name(18, 6)
+			self.text = text
 		elif self.sectype == 0x41:
-			self.name = self._get_name(18, 6)
+			self.name = text
+		else:
+			assert self.data[18:24] == '\x00'*6
 
 	def __str__(self):
 		font = 'vector proportional fixed'.split()[self.font]
@@ -231,8 +234,10 @@ class SymbolsSection(Section):
 	sectype = 0x18
 	secname = 'Symbols'
 	def parse(self):
+		self._get_zero(2, 2)
 		self.subsecs = self._get_uint32(4)
 		self.children = self._get_uint32(8)
+		self._get_zero(12, 4)
 		self.libname = self._get_name(16, 8)
 		self.subsec_counts = [self.subsecs]
 
@@ -291,6 +296,7 @@ class BoardNetSection(Section):
 	secname = 'Board/net'
 	def parse(self):
 		self.subsecs = self._get_uint16(2)
+		self._get_zero(12, 4)
 		self.name = self._get_name(16, 8)
 		self.subsec_counts = [self.subsecs]
 
@@ -334,6 +340,7 @@ class SchemaNetSection(Section):
 	secname = 'Schema/net'
 	def parse(self):
 		self.subsecs = self._get_uint16(2)
+		self._get_zero(12, 4)
 		self.name = self._get_name(16, 8)
 		self.subsec_counts = [self.subsecs]
 
@@ -345,6 +352,7 @@ class PathSection(Section):
 	secname = 'Path'
 	def parse(self):
 		self.subsecs = self._get_uint16(2)
+		self._get_zero(12, 12)
 		self.subsec_counts = [self.subsecs]
 
 	def __str__(self):
@@ -358,6 +366,7 @@ class PolygonSection(Section):
 		self.spacing_2 = self._get_uint16(14)
 		self.layer = self._get_uint8(18)
 		self.pour = 'hatch' if self._get_uint8_mask(19, 0x01) else 'solid'
+		self._get_zero(20, 4)
 
 	def __str__(self):
 		return '%s: width %f", spacing %f", pour %s, layer %d' % (self.secname, u2in(self.width_2*2), u2in(self.spacing_2*2), self.pour, self.layer)
@@ -366,6 +375,7 @@ class LineSection(Section):
 	sectype = 0x22
 	secname = 'Line'
 	def parse(self):
+		# Unknown byte: 2
 		self.layer = self._get_uint8(3)
 		self.width_2 = self._get_uint16(20)
 		self.linetype = self._get_uint8(23)
@@ -451,6 +461,7 @@ class CircleSection(Section):
 		self.x1 = self._get_int32(4)
 		self.y1 = self._get_int32(8)
 		self.r = self._get_int32(12)
+		# Unknown bytes: 16-19, almost always the same as bytes 12-15
 		self.width_2 = self._get_uint32(20)
 		#assert r == _get_int32(16) # Almost always the same...
 
@@ -461,12 +472,14 @@ class RectangleSection(Section):
 	sectype = 0x26
 	secname = 'Rectangle'
 	def parse(self):
+		# Unknown byte: 2
 		self.layer = self._get_uint8(3)
 		self.x1 = self._get_int32(4)
 		self.y1 = self._get_int32(8)
 		self.x2 = self._get_int32(12)
 		self.y2 = self._get_int32(16)
 		self.angle = self._get_uint16(20)
+		self._get_zero(22, 2)
 
 	def __str__(self):
 		return '%s: from (%f", %f") to (%f", %f"), angle %f, layer %d' % (self.secname, u2in(self.x1), u2in(self.y1), u2in(self.x2), u2in(self.y2), 360 * self.angle / 4096., self.layer)
@@ -477,6 +490,7 @@ class JunctionSection(Section):
 	def parse(self):
 		self.x = self._get_int32(4)
 		self.y = self._get_int32(8)
+		self._get_zero(14, 10)
 
 	def __str__(self):
 		return '%s: at (%f", %f")' % (self.secname, u2in(self.x), u2in(self.y))
@@ -485,9 +499,11 @@ class HoleSection(Section):
 	sectype = 0x28
 	secname = 'Hole'
 	def parse(self):
+		self._get_zero(2, 2)
 		self.x = self._get_int32(4)
 		self.y = self._get_int32(8)
 		self.width_2 = self._get_uint32(12)
+		self._get_zero(18, 6)
 
 	def __str__(self):
 		return '%s: at (%f", %f") drill %f"' % (self.secname, u2in(self.x), u2in(self.y), u2in(self.width_2*2))
@@ -496,6 +512,7 @@ class PadSection(Section):
 	sectype = 0x2a
 	secname = 'Pad'
 	def parse(self):
+		# Unknown bytes: 2-3
 		self.x = self._get_int32(4)
 		self.y = self._get_int32(8)
 		self.drill_2 = self._get_uint16(12)
@@ -550,8 +567,10 @@ class DeviceSymbolSection(Section):
 	sectype = 0x2d
 	secname = 'Device/symbol'
 	def parse(self):
+		self._get_zero(2, 2)
 		self.x = self._get_int32(4)
 		self.y = self._get_int32(8)
+		# Unknown bytes: 12-13
 		self.symno = self._get_uint16(14)
 		self.name = self._get_name(16, 8)
 
@@ -622,6 +641,7 @@ class DevicePackageSection(Section):
 	sectype = 0x36
 	secname = 'Device/package'
 	def parse(self):
+		# Unknown bytes: 2-3
 		self.pacno = self._get_uint16(4)
 		self.variant = self._get_name(19, 5)
 		self.table = self._get_name(6, 13)
@@ -635,6 +655,7 @@ class DeviceSection(Section):
 	def parse(self):
 		self.symsubsecs = self._get_uint16(2)
 		self.pacsubsecs = self._get_uint16(4)
+		# Unknown byte: 6
 		self.con_byte = self._get_uint8_mask(7, 0x80) >> 7
 		self.pin_bits = self._get_uint8_mask(7, 0x0f)
 		self._get_zero_mask(7, 0x70)
@@ -689,6 +710,7 @@ class SchemaConnectionSection(Section):
 	def parse(self):
 		self.symno = self._get_uint16(4)
 		self.pin = self._get_uint16(8)
+		self._get_zero(10, 14)
 
 	def __str__(self):
 		return '%s: symbol %d, pin %d' % (self.secname, self.symno, self.pin)
@@ -699,6 +721,8 @@ class BoardConnectionSection(Section):
 	def parse(self):
 		self.pacno = self._get_uint16(4)
 		self.pin = self._get_uint16(6)
+		self._get_zero(2, 2)
+		self._get_zero(8, 16)
 
 	def __str__(self):
 		return '%s: package %d, pin %d' % (self.secname, self.pacno, self.pin)
