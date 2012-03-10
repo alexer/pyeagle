@@ -274,13 +274,17 @@ class BoardSection(Section):
 	secname = 'Board'
 	def parse(self):
 		self.drawsubsecs = self._get_uint16(2)
+		self.minx = self._get_int16(4)
+		self.miny = self._get_int16(6)
+		self.maxx = self._get_int16(8)
+		self.maxy = self._get_int16(10)
 		self.defsubsecs = self._get_uint32(12)
 		self.pacsubsecs = self._get_uint32(16)
 		self.netsubsecs = self._get_uint32(20)
 		self.subsec_counts = [self.defsubsecs, self.drawsubsecs, self.pacsubsecs, self.netsubsecs]
 
 	def __str__(self):
-		return '%s: defsubsecs %d, drawsubsecs %d, pacsubsecs %d, netsubsecs %d' % (self.secname, self.defsubsecs, self.drawsubsecs, self.pacsubsecs, self.netsubsecs)
+		return '%s: limits (%dmil, %dmil), (%dmil, %dmil), defsubsecs %d, drawsubsecs %d, pacsubsecs %d, netsubsecs %d' % (self.secname, self.minx, self.miny, self.maxx, self.maxy, self.defsubsecs, self.drawsubsecs, self.pacsubsecs, self.netsubsecs)
 
 class BoardNetSection(Section):
 	sectype = 0x1c
