@@ -40,8 +40,12 @@ class EagleDrawing(BaseDrawing):
 	def draw_item(self, cr, item):
 		if isinstance(item, eagle.SchemaSection):
 			self.draw_schema(cr, item)
+		elif isinstance(item, eagle.BoardSection):
+			self.draw_board(cr, item)
 		elif isinstance(item, eagle.SchemaSymbolSection):
 			self.draw_schemasymbol(cr, item)
+		elif isinstance(item, eagle.BoardPackageSection):
+			self.draw_boardpackage(cr, item)
 		elif isinstance(item, eagle.SymbolSection):
 			self.draw_symbol(cr, item)
 		elif isinstance(item, eagle.PackageSection):
@@ -75,6 +79,15 @@ class EagleDrawing(BaseDrawing):
 				for item in path.subsections[0]:
 					self.draw_item(cr, item)
 
+	def draw_board(self, cr, brd):
+		for item in brd.subsections[2]:
+			self.draw_item(cr, item)
+		for item in brd.subsections[1]:
+			self.draw_item(cr, item)
+		for net in brd.subsections[3]:
+			for item in net.subsections[0]:
+				self.draw_item(cr, item)
+
 	def draw_symbol(self, cr, sym):
 		for item in sym.subsections[0]:
 			self.draw_item(cr, item)
@@ -94,6 +107,18 @@ class EagleDrawing(BaseDrawing):
 		syms = lib.subsections[1][0]
 		sym = syms.subsections[0][item1.symno-1]
 		self.draw_symbol(cr, sym)
+		cr.restore()
+
+	def draw_boardpackage(self, cr, item):
+		cr.save()
+		cr.translate(item.x, item.y)
+		#if item.mirrored:
+		#	cr.scale(-1, 1)
+		#cr.rotate(math.radians(item.angle))
+		brd = self.module
+		pacs = brd.subsections[0][item.libno-1]
+		pac = pacs.subsections[0][item.pacno-1]
+		self.draw_symbol(cr, pac)
 		cr.restore()
 
 	def draw_line(self, cr, item):
@@ -166,6 +191,8 @@ if __name__ == "__main__":
 		libs = [subsec for subsec in root.subsections[1] if isinstance(subsec, eagle.LibrarySection)]
 		if itemtype == 'schema':
 			item = [subsec for subsec in root.subsections[1] if isinstance(subsec, eagle.SchemaSection)][0]
+		elif itemtype == 'board':
+			item = [subsec for subsec in root.subsections[1] if isinstance(subsec, eagle.BoardSection)][0]
 		else:
 			items = libs[0].subsections['device symbol package'.split().index(itemtype)][0]
 			item = [item for item in items.subsections[0] if item.name == name][0]
