@@ -29,8 +29,8 @@ class CairoGTK(gtk.DrawingArea):
 		self.modelsize = (self.maxx - self.minx, self.maxy - self.miny)
 		self.modelwidth, self.modelheight = self.modelsize
 
-		self.xpos = -self.xpol * self.minx
-		self.ypos = -self.ypol * self.miny
+		self.xpos = -(self.minx if self.xpol > 0 else self.maxx)
+		self.ypos = -(self.miny if self.ypol > 0 else self.maxy)
 		self.zoomscale = 1
 
 	def zoom(self, zamt, center):
