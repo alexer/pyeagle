@@ -765,7 +765,11 @@ def read_layers(f):
 		sectype = ord(data[0])
 		section_cls = sections.get(sectype)
 		if section_cls:
-			section = section_cls(parent.section, data)
+			try:
+				section = section_cls(parent.section, data)
+			except:
+				dump_hex_ascii(data)
+				raise
 			assert sum(section.subsec_counts) <= sum(parent.counts)
 			parent.add_subsection(section)
 			indents.append(Indenter(section))
