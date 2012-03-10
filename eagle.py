@@ -761,6 +761,7 @@ def read_layers(f):
 		indents = [indent for indent in indents if sum(indent.counts) > 0]
 		for indent in indents:
 			indent.next_section()
+		#indentstr = ' '.join(indent.section.secname + str(indent.counts) for indent in indents)
 		indent = '  ' * len(indents)
 
 		parent = indents[-1]
@@ -770,13 +771,14 @@ def read_layers(f):
 		if section_cls:
 			try:
 				section = section_cls(parent.section, data)
+				assert sum(section.subsec_counts) <= sum(parent.counts)
 			except:
 				dump_hex_ascii(data)
 				raise
-			assert sum(section.subsec_counts) <= sum(parent.counts)
 			parent.add_subsection(section)
 			indents.append(Indenter(section))
 			section.hexdump()
+			#print indentstr
 			print indent + '- ' + str(section)
 		else:
 			dump_hex_ascii(data)
