@@ -633,13 +633,14 @@ class SchemaSymbolSection(Section):
 	secname = 'Schema/symbol'
 	def parse(self):
 		self.subsecs = self._get_uint16(2)
+		self.libno = self._get_uint16(4)
 		self.symno = self._get_uint16(6)
 		self.value = self._get_name(16, 8)
 		self.name = self._get_name(11, 5)
 		self.subsec_counts = [self.subsecs]
 
 	def __str__(self):
-		return '%s %d, name %s, value %s, subsecs %d' % (self.secname, self.symno, self.name, self.value, self.subsecs)
+		return '%s %d@%d, name %s, value %s, subsecs %d' % (self.secname, self.symno, self.libno, self.name, self.value, self.subsecs)
 
 class SchemaBusSection(Section):
 	sectype = 0x3a
