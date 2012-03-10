@@ -60,10 +60,10 @@ class EagleDrawing(BaseDrawing):
 		#	raise TypeError, 'Unknown section: ' + item.secname
 
 	def draw_schema(self, cr, sch):
-		for item in sch.subsections[0]:
+		for item in sch.subsections[1]:
 			self.draw_item(cr, item)
 		cr.set_source_rgb(0.0, 1.0, 0.0)
-		for net in sch.subsections[2]:
+		for net in sch.subsections[3]:
 			for path in net.subsections[0]:
 				for item in path.subsections[0]:
 					self.draw_item(cr, item)

@@ -256,13 +256,14 @@ class SchemaSection(Section):
 	sectype = 0x1a
 	secname = 'Schema'
 	def parse(self):
+		self.drawsubsecs = self._get_uint16(2)
 		self.symsubsecs = self._get_uint32(12)
 		self.bussubsecs = self._get_uint32(16)
 		self.netsubsecs = self._get_uint32(20)
-		self.subsec_counts = [self.symsubsecs, self.bussubsecs, self.netsubsecs]
+		self.subsec_counts = [self.drawsubsecs, self.symsubsecs, self.bussubsecs, self.netsubsecs]
 
 	def __str__(self):
-		return '%s: symsubsecs %d, bussubsecs %d, netsubsecs %d' % (self.secname, self.symsubsecs, self.bussubsecs, self.netsubsecs)
+		return '%s: drawsubsecs %d, symsubsecs %d, bussubsecs %d, netsubsecs %d' % (self.secname, self.drawsubsecs, self.symsubsecs, self.bussubsecs, self.netsubsecs)
 
 class BoardSection(Section):
 	sectype = 0x1b
