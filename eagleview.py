@@ -62,6 +62,11 @@ class EagleDrawing(BaseDrawing):
 	def draw_schema(self, cr, sch):
 		for item in sch.subsections[0]:
 			self.draw_item(cr, item)
+		cr.set_source_rgb(0.0, 1.0, 0.0)
+		for net in sch.subsections[2]:
+			for path in net.subsections[0]:
+				for item in path.subsections[0]:
+					self.draw_item(cr, item)
 
 	def draw_symbol(self, cr, sym):
 		for item in sym.subsections[0]:
@@ -115,13 +120,14 @@ class EagleDrawing(BaseDrawing):
 		cr.move_to(item.x, item.y)
 		cr.rel_line_to(*point)
 		cr.stroke()
-		cr.save()
-		cr.set_source_rgb(0.0, 1.0, 0.0)
-		cr.arc(item.x, item.y, 10000, 0, 2*math.pi)
-		cr.identity_matrix()
-		cr.set_line_width(1)
-		cr.stroke()
-		cr.restore()
+		if isinstance(self.module, eagle.SymbolSection):
+			cr.save()
+			cr.set_source_rgb(0.0, 1.0, 0.0)
+			cr.arc(item.x, item.y, 10000, 0, 2*math.pi)
+			cr.identity_matrix()
+			cr.set_line_width(1)
+			cr.stroke()
+			cr.restore()
 
 	def draw_pad(self, cr, item):
 		cr.set_fill_rule(cairo.FILL_RULE_EVEN_ODD)
