@@ -183,7 +183,8 @@ class StartSection(Section):
 class Unknown11Section(UnknownSection):
 	sectype = 0x11
 
-grid_units = {0x00: 'mic', 0x05: 'mm', 0x07: 'in as mm', 0x0a: 'mil', 0x0f: 'in'}
+grid_units2 = 'mic mm mil in'.split()
+grid_units4 = [save if save == disp else '%s as %s' % (save, disp) for disp in grid_units2 for save in grid_units2]
 class GridSection(Section):
 	sectype = 0x12
 	secname = 'Grid'
@@ -191,8 +192,11 @@ class GridSection(Section):
 		self.display = self._get_uint8_mask(2, 0x1)
 		self.style = 'lines dots'.split()[self._get_uint8_mask(2, 0x2) >> 1]
 		self._get_zero_mask(2, 0xfc)
-		self.unit = grid_units[self._get_uint8_mask(3, 0x0f)]
-		self.altunit = grid_units[self._get_uint8_mask(3, 0xf0) >> 4]
+		# 4 bits of unit
+		# higher 2 bits tell which unit is used for display
+		# lower 2 bits tell which unit is used for saving
+		self.unit = grid_units4[self._get_uint8_mask(3, 0x0f)]
+		self.altunit = grid_units4[self._get_uint8_mask(3, 0xf0) >> 4]
 		self.multiple = self._get_uint24(4)
 		self._get_zero(7, 1)
 		self.size = self._get_double(8)
