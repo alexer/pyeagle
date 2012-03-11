@@ -816,6 +816,15 @@ class AttributeValueSection(Section):
 	def __str__(self):
 		return '%s %s on symbol %s' % (self.secname, self.attribute, self.symbol)
 
+class FrameSection(Section):
+	sectype = 0x43
+	secname = 'Frame'
+	def parse(self):
+		self._get_unknown(2, 22)
+
+	def __str__(self):
+		return self.secname
+
 sections = {}
 for section in [StartSection, Unknown11Section, GridSection, LayerSection, SchemaSection, LibrarySection, DevicesSection,
 		SymbolsSection, PackagesSection, SchemaSheetSection, BoardSection, BoardNetSection, SymbolSection, PackageSection, SchemaNetSection,
@@ -823,7 +832,7 @@ for section in [StartSection, Unknown11Section, GridSection, LayerSection, Schem
 		HoleSection, PadSection, SmdSection, PinSection, DeviceSymbolSection, BoardPackageSection, BoardPackage2Section,
 		SchemaSymbol2Section, TextSection, NetBusLabelSection, SmashedNameSection, SmashedValueSection, DevicePackageSection, DeviceSection,
 		SchemaSymbolSection, SchemaBusSection, DeviceConnectionsSection, SchemaConnectionSection, BoardConnectionSection,
-		AttributeSection, AttributeValueSection]:
+		AttributeSection, AttributeValueSection, FrameSection]:
 	sections[section.sectype] = section
 
 class Indenter:
