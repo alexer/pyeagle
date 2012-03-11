@@ -433,7 +433,7 @@ class LineSection(Section):
 		self.width_2 = self._get_uint16(20)
 		self.linetype = self._get_uint8(23)
 
-		assert self.linetype in (0x00, 0x01, 0x81, 0x7e, 0x7f, 0x7b, 0x79, 0x78, 0x7a, 0x7d, 0x7c), 'Unknown line type: ' + hex(arctype)
+		assert self.linetype in (0x00, 0x01, 0x81, 0x7e, 0x7f, 0x7b, 0x79, 0x78, 0x7a, 0x7d, 0x7c, 0x77), 'Unknown line type: ' + hex(self.linetype)
 
 		if self.linetype != 0x01:
 			self.stflags = self._get_uint8_mask(22, 0x33)
@@ -502,6 +502,8 @@ class LineSection(Section):
 			return 'Line: %s, width %f", layer %d, style %s' % (coords, u2in(self.width_2*2), self.layer, self.style)
 		elif self.linetype == 0x01:
 			return 'Airwire: %s, width %f", layer %d' % (coords, u2in(self.width_2*2), self.layer)
+		elif self.linetype == 0x77:
+			return '??Line??: %s, width %f", layer %d, style %s' % (coords, u2in(self.width_2*2), self.layer, self.style)
 		else:
 			center = 'center at (%f", %f")' % (u2in(self.cx), u2in(self.cy))
 			arctype = {0x78: '90 downleft', 0x79: '90 downright', 0x7a: '90 upright', 0x7b: '90 upleft', 0x7c: '180 left', 0x7d: '180 right', 0x7e: '180 down', 0x7f: '180 up', 0x81: ''}[self.linetype]
