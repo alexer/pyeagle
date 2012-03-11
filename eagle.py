@@ -570,6 +570,15 @@ class HoleSection(Section):
 	def __str__(self):
 		return '%s: at (%f", %f") drill %f"' % (self.secname, u2in(self.x), u2in(self.y), u2in(self.width_2*2))
 
+class ViaSection(Section):
+	sectype = 0x29
+	secname = 'Via'
+	def parse(self):
+		self._get_unknown(2, 22)
+
+	def __str__(self):
+		return self.secname
+
 class PadSection(Section):
 	sectype = 0x2a
 	secname = 'Pad'
@@ -829,7 +838,7 @@ sections = {}
 for section in [StartSection, Unknown11Section, GridSection, LayerSection, SchemaSection, LibrarySection, DevicesSection,
 		SymbolsSection, PackagesSection, SchemaSheetSection, BoardSection, BoardNetSection, SymbolSection, PackageSection, SchemaNetSection,
 		PathSection, PolygonSection, LineSection, CircleSection, RectangleSection, JunctionSection,
-		HoleSection, PadSection, SmdSection, PinSection, DeviceSymbolSection, BoardPackageSection, BoardPackage2Section,
+		HoleSection, ViaSection, PadSection, SmdSection, PinSection, DeviceSymbolSection, BoardPackageSection, BoardPackage2Section,
 		SchemaSymbol2Section, TextSection, NetBusLabelSection, SmashedNameSection, SmashedValueSection, DevicePackageSection, DeviceSection,
 		SchemaSymbolSection, SchemaBusSection, DeviceConnectionsSection, SchemaConnectionSection, BoardConnectionSection,
 		AttributeSection, AttributeValueSection, FrameSection]:
