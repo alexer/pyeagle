@@ -147,6 +147,10 @@ class StartSection(Section):
 	def parse(self):
 		self.subsecs = self._get_uint16(2)
 		self.numsecs = self._get_uint32(4)
+		# Unknown bytes 8-11
+		self._get_zero(12, 1)
+		# Unknown byte 13
+		self._get_zero(14, 10)
 		# XXX: hack
 		self.subsec_counts = [self.subsecs, self.numsecs - self.subsecs - 1]
 
@@ -215,6 +219,7 @@ class LibrarySection(Section):
 	sectype = 0x15
 	secname = 'Library'
 	def parse(self):
+		self._get_zero(2, 2)
 		self.devsubsecs = self._get_uint32(4)
 		self.symsubsecs = self._get_uint32(8)
 		self.pacsubsecs = self._get_uint32(12)
@@ -228,8 +233,10 @@ class DevicesSection(Section):
 	sectype = 0x17
 	secname = 'Devices'
 	def parse(self):
+		self._get_zero(2, 2)
 		self.subsecs = self._get_uint32(4)
 		self.children = self._get_uint32(8)
+		self._get_zero(12, 4)
 		self.libname = self._get_name(16, 8)
 		self.subsec_counts = [self.subsecs]
 
@@ -254,6 +261,7 @@ class PackagesSection(Section):
 	sectype = 0x19
 	secname = 'Packages'
 	def parse(self):
+		self._get_zero(2, 2)
 		self.subsecs = self._get_uint32(4)
 		self.children = self._get_uint16(8)
 		self.libname = self._get_name(16, 8)
@@ -318,6 +326,7 @@ class SymbolSection(Section):
 		self.miny = self._get_int16(6)
 		self.maxx = self._get_int16(8)
 		self.maxy = self._get_int16(10)
+		self._get_zero(12, 4)
 		self.name = self._get_name(16, 8)
 		self.subsec_counts = [self.subsecs]
 
@@ -370,6 +379,7 @@ class PolygonSection(Section):
 	def parse(self):
 		self.width_2 = self._get_uint16(12)
 		self.spacing_2 = self._get_uint16(14)
+		self._get_zero(16, 2)
 		self.layer = self._get_uint8(18)
 		self.pour = 'hatch' if self._get_uint8_mask(19, 0x01) else 'solid'
 		self._get_zero(20, 4)
@@ -396,6 +406,8 @@ class LineSection(Section):
 			self.clockwise = bool(self.stflags & 0x20)
 			self.style = {0x00: 'continuous', 0x01: 'longdash', 0x02: 'shortdash', 0x03: 'dashdot'}[self.stflags & 0x03]
 			self.cap = {0x00: 'round', 0x10: 'flat'}[self.stflags & 0x10]
+		else:
+			self._get_zero(22, 1)
 
 		if self.linetype == 0x81:
 			# 4 4-byte fields each contain 3 bytes of x1, y1, x2, y2 respectively.
@@ -463,6 +475,7 @@ class CircleSection(Section):
 	sectype = 0x25
 	secname = 'Circle'
 	def parse(self):
+		self._get_zero(2, 1)
 		self.layer = self._get_uint8(3)
 		self.x1 = self._get_int32(4)
 		self.y1 = self._get_int32(8)
@@ -509,6 +522,7 @@ class HoleSection(Section):
 		self.x = self._get_int32(4)
 		self.y = self._get_int32(8)
 		self.width_2 = self._get_uint32(12)
+		self._get_zero(16, 2) # Unknown?
 		self._get_zero(18, 6)
 
 	def __str__(self):
@@ -595,6 +609,7 @@ class BoardPackageSection(Section):
 		self.angle = self._get_uint16(16)
 		self.mirrored = bool(self.angle & 0x1000)
 		self.angle &= 0x0fff
+		self._get_zero(18, 2)
 		self.subsec_counts = [self.subsecs]
 
 	def __str__(self):
@@ -617,11 +632,13 @@ class SchemaSymbol2Section(Section):
 		self.subsecs = self._get_uint16(2)
 		self.x = self._get_int32(4)
 		self.y = self._get_int32(8)
+		self._get_zero(15, 2)
 		self.angle = [0, 90, 180, 270][self._get_uint8_mask(17, 0x0c) >> 2]
 		self.mirrored = bool(self._get_uint8_mask(17, 0x10))
 		self._get_zero_mask(17, 0xe3)
 		self.smashed = self._get_uint8_mask(18, 0x01) == 0x01
 		self._get_zero_mask(18, 0xfe)
+		self._get_zero(19, 1)
 		self.subsec_counts = [self.subsecs]
 
 	def __str__(self):
@@ -714,6 +731,7 @@ class SchemaConnectionSection(Section):
 	sectype = 0x3d
 	secname = 'Schema/connection'
 	def parse(self):
+		self._get_zero(2, 2)
 		self.symno = self._get_uint16(4)
 		self.pin = self._get_uint16(8)
 		self._get_zero(10, 14)
