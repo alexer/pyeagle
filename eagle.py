@@ -183,7 +183,7 @@ class StartSection(Section):
 class Unknown11Section(UnknownSection):
 	sectype = 0x11
 
-grid_units = {0x00: 'mic', 0x05: 'mm', 0x0a: 'mil', 0x0f: 'in'}
+grid_units = {0x00: 'mic', 0x05: 'mm', 0x07: 'in as mm', 0x0a: 'mil', 0x0f: 'in'}
 class GridSection(Section):
 	sectype = 0x12
 	secname = 'Grid'
