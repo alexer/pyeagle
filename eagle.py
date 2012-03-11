@@ -444,7 +444,7 @@ class LineSection(Section):
 			self.style = {0x00: 'continuous', 0x01: 'longdash', 0x02: 'shortdash', 0x03: 'dashdot'}[self.stflags & 0x03]
 			self.cap = {0x00: 'round', 0x10: 'flat'}[self.stflags & 0x10]
 		else:
-			self._get_zero(22, 1)
+			self._get_unknown(22, 1)
 
 		if self.linetype == 0x81:
 			# 4 4-byte fields each contain 3 bytes of x1, y1, x2, y2 respectively.
