@@ -228,7 +228,8 @@ class SchemaSection(Section):
 	sectype = 0x14
 	secname = 'Schema'
 	def parse(self):
-		self._get_unknown(2, 2)
+		self._get_unknown(2, 1)
+		self._get_zero(3, 1)
 		self.libsubsecs = self._get_uint32(4)
 		self.shtsubsecs = self._get_uint32(8)
 		self.atrsubsecs = self._get_uint32(12)
@@ -538,7 +539,8 @@ class JunctionSection(Section):
 	sectype = 0x27
 	secname = 'Junction'
 	def parse(self):
-		self._get_unknown(2, 2)
+		self._get_zero(2, 1)
+		self._get_unknown(3, 1)
 		self.x = self._get_int32(4)
 		self.y = self._get_int32(8)
 		self._get_unknown(12, 2)
@@ -565,7 +567,8 @@ class PadSection(Section):
 	sectype = 0x2a
 	secname = 'Pad'
 	def parse(self):
-		self._get_unknown(2, 2)
+		self._get_unknown(2, 1)
+		self._get_zero(3, 1)
 		self.x = self._get_int32(4)
 		self.y = self._get_int32(8)
 		self.drill_2 = self._get_uint16(12)
@@ -734,7 +737,8 @@ class SchemaSymbolSection(Section):
 		self.subsecs = self._get_uint16(2)
 		self.libno = self._get_uint16(4)
 		self.symno = self._get_uint16(6)
-		self._get_unknown(8, 3)
+		self._get_unknown(8, 2)
+		self._get_zero(10, 1)
 		self.value = self._get_name(16, 8)
 		self.name = self._get_name(11, 5)
 		self.subsec_counts = [self.subsecs]
@@ -771,7 +775,8 @@ class SchemaConnectionSection(Section):
 	def parse(self):
 		self._get_zero(2, 2)
 		self.symno = self._get_uint16(4)
-		self._get_unknown(6, 2)
+		self._get_unknown(6, 1)
+		self._get_zero(7, 1)
 		self.pin = self._get_uint16(8)
 		self._get_zero(10, 14)
 
