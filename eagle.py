@@ -173,7 +173,7 @@ class StartSection(Section):
 		self._get_unknown(8, 4)
 		self._get_zero(12, 1)
 		self._get_unknown(13, 1)
-		self._get_zero(14, 10)
+		self._get_unknown(14, 10)
 		# XXX: hack
 		self.subsec_counts = [self.subsecs, self.numsecs - self.subsecs - 1]
 
@@ -408,7 +408,7 @@ class PolygonSection(Section):
 		self._get_unknown(4, 8) # limits?
 		self.width_2 = self._get_uint16(12)
 		self.spacing_2 = self._get_uint16(14)
-		self._get_zero(16, 2)
+		self._get_unknown(16, 2)
 		self.layer = self._get_uint8(18)
 		self.pour = 'hatch' if self._get_uint8_mask(19, 0x01) else 'solid'
 		self._get_unknown_mask(19, 0xfe)
@@ -505,7 +505,7 @@ class CircleSection(Section):
 	sectype = 0x25
 	secname = 'Circle'
 	def parse(self):
-		self._get_zero(2, 1)
+		self._get_unknown(2, 1)
 		self.layer = self._get_uint8(3)
 		self.x1 = self._get_int32(4)
 		self.y1 = self._get_int32(8)
@@ -699,7 +699,8 @@ class DevicePackageSection(Section):
 	sectype = 0x36
 	secname = 'Device/package'
 	def parse(self):
-		self._get_unknown(2, 2)
+		self._get_unknown(2, 1)
+		self._get_zero(3, 1)
 		self.pacno = self._get_uint16(4)
 		self.variant = self._get_name(19, 5)
 		self.table = self._get_name(6, 13)
