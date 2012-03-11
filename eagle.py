@@ -101,11 +101,11 @@ class Section:
 
 	def _get_zero(self, pos, size):
 		self.zero[pos:pos+size] = [0xff] * size
-		assert self.data[pos:pos+size] == '\x00' * size, 'Unknown data: ' + repr(self.data[pos:pos+size])
+		assert self.data[pos:pos+size] == '\x00' * size, 'Unknown data in ' + self.secname + ': ' + repr(self.data[pos:pos+size])
 
 	def _get_zero_mask(self, pos, mask):
 		self.zero[pos] |= mask
-		assert ord(self.data[pos]) & mask == 0x00, 'Unknown bits: ' + hex(ord(self.data[pos]) & mask)
+		assert ord(self.data[pos]) & mask == 0x00, 'Unknown bits in ' + self.secname + ': ' + hex(ord(self.data[pos]) & mask)
 
 	def _get_uint32(self, pos): return struct.unpack('<I', self._get_bytes(pos, 4))[0]
 	def _get_uint24(self, pos): return struct.unpack('<I', self._get_bytes(pos, 3) + '\x00')[0]
