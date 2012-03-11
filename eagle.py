@@ -404,7 +404,7 @@ class PolygonSection(Section):
 	sectype = 0x21
 	secname = 'Polygon'
 	def parse(self):
-		self._get_unknown(2, 2)
+		self.subsecs = self._get_uint16(2)
 		self._get_unknown(4, 8) # limits?
 		self.width_2 = self._get_uint16(12)
 		self.spacing_2 = self._get_uint16(14)
@@ -413,9 +413,10 @@ class PolygonSection(Section):
 		self.pour = 'hatch' if self._get_uint8_mask(19, 0x01) else 'solid'
 		self._get_unknown_mask(19, 0xfe)
 		self._get_zero(20, 4)
+		self.subsec_counts = [self.subsecs]
 
 	def __str__(self):
-		return '%s: width %f", spacing %f", pour %s, layer %d' % (self.secname, u2in(self.width_2*2), u2in(self.spacing_2*2), self.pour, self.layer)
+		return '%s: width %f", spacing %f", pour %s, layer %d, subsecs %d' % (self.secname, u2in(self.width_2*2), u2in(self.spacing_2*2), self.pour, self.layer, self.subsecs)
 
 class LineSection(Section):
 	sectype = 0x22
