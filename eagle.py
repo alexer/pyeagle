@@ -47,37 +47,57 @@ class Section:
 	def __init__(self, parent, data):
 		self.parent = parent
 		self.data = data
+		# Default is unknown, but self.unknown lists known unknowns
+		self.unknown = [0x00] * 24
 		self.known = [0x00] * 24
 		self.zero = [0x00] * 24
 		self.subsec_counts = []
 		self._get_uint8(0)
+		self._get_unknown(1, 1)
 		self.parse()
 
-	def _get_color(self, known, zero = 0):
+	def _get_color(self, known, zero = 0, unknown = 0):
 		assert known & zero == 0x00, "Bit can't be known and zero at the same time! (known = %s, zero = %s, known & zero = %s)" % (hex(known), hex(zero), hex(known & zero))
-		if known == 0x00 and zero == 0x00:
-			return '1;31' # unknown, red
-		elif known == 0xff and zero == 0x00:
-			return '1;32' # known, green
-		elif known == 0x00 and zero == 0xff:
-			return '1;34' # zero, blue
-		elif zero == 0x00:
-			return '1;33' # known/unknown, yellow
-		elif known == 0x00:
-			return '1;35' # unknown/zero, purple
-		elif known | zero == 0xff:
-			return '1;36' # known/zero, cyan
+		assert known & unknown == 0x00, "Bit can't be known and unknown at the same time! (known = %s, unknown = %s, known & unknown = %s)" % (hex(known), hex(unknown), hex(known & unknown))
+		assert unknown & zero == 0x00, "Bit can't be unknown and zero at the same time! (unknown = %s, zero = %s, unknown & zero = %s)" % (hex(unknown), hex(zero), hex(unknown & zero))
+		if unknown == 0xff:
+			color = '1;31' # unknown, red
+		elif known == 0xff:
+			color = '1;32' # known, green
+		elif zero == 0xff:
+			color = '1;34' # zero, blue
+		elif known and unknown and not zero:
+			color = '1;33' # known/unknown, yellow
+		elif unknown and zero and not known:
+			color = '1;35' # unknown/zero, purple
+		elif known and zero and not unknown:
+			color = '1;36' # known/zero, cyan
+		elif known and unknown and zero:
+			color = '1;37' # known/unknown/zero, white
 		else:
-			return '1;37' # known/unknown/zero, white
+			color = '30'
+		if known | unknown | zero != 0xff:
+			# Unknown unknown, red background, but not red on red
+			if color == '1;31':
+				color = '30;41'
+			else:
+				color += ';41'
+		return color
 
 	def hexdump(self):
-		colorhex = ' '.join('\x1b[%sm%02x\x1b[m' % (self._get_color(known, zero), ord(byte)) for byte, known, zero in zip(self.data, self.known, self.zero))
-		colorascii = ''.join('\x1b[%sm%s\x1b[m' % (self._get_color(known, zero), byte if 32 <= ord(byte) < 127 else '.') for byte, known, zero in zip(self.data, self.known, self.zero))
+		colorhex = ' '.join('\x1b[%sm%02x\x1b[m' % (self._get_color(known, zero, unknown), ord(byte)) for byte, known, zero, unknown in zip(self.data, self.known, self.zero, self.unknown))
+		colorascii = ''.join('\x1b[%sm%s\x1b[m' % (self._get_color(known, zero, unknown), byte if 32 <= ord(byte) < 127 else '.') for byte, known, zero, unknown in zip(self.data, self.known, self.zero, self.unknown))
 		print colorhex, colorascii
 
 	def _get_bytes(self, pos, size):
 		self.known[pos:pos+size] = [0xff] * size
 		return self.data[pos:pos+size]
+
+	def _get_unknown(self, pos, size):
+		self.unknown[pos:pos+size] = [0xff] * size
+
+	def _get_unknown_mask(self, pos, mask):
+		self.unknown[pos] |= mask
 
 	def _get_zero(self, pos, size):
 		self.zero[pos:pos+size] = [0xff] * size
@@ -105,8 +125,11 @@ class Section:
 
 class UnknownSection(Section):
 	secname = '???'
-	def parse(self): pass
-	def __str__(self): return self.secname
+	def parse(self):
+		self._get_unknown(2, 22)
+
+	def __str__(self):
+		return self.secname
 
 class TextBaseSection(Section):
 	def parse(self):
@@ -147,9 +170,9 @@ class StartSection(Section):
 	def parse(self):
 		self.subsecs = self._get_uint16(2)
 		self.numsecs = self._get_uint32(4)
-		# Unknown bytes 8-11
+		self._get_unknown(8, 4)
 		self._get_zero(12, 1)
-		# Unknown byte 13
+		self._get_unknown(13, 1)
 		self._get_zero(14, 10)
 		# XXX: hack
 		self.subsec_counts = [self.subsecs, self.numsecs - self.subsecs - 1]
@@ -184,6 +207,7 @@ class LayerSection(Section):
 	def parse(self):
 		self.flags = self._get_uint8_mask(2, 0x1e)
 		self._get_zero_mask(2, 0xe0)
+		self._get_unknown_mask(2, 0x01)
 		self.layer = self._get_uint8(3)
 		self.other = self._get_uint8(4)
 		self.fill = self._get_uint8(5)
@@ -204,7 +228,7 @@ class SchemaSection(Section):
 	sectype = 0x14
 	secname = 'Schema'
 	def parse(self):
-		# Unknown bytes: 2-3
+		self._get_unknown(2, 2)
 		self.libsubsecs = self._get_uint32(4)
 		self.shtsubsecs = self._get_uint32(8)
 		self.atrsubsecs = self._get_uint32(12)
@@ -310,6 +334,7 @@ class BoardNetSection(Section):
 	secname = 'Board/net'
 	def parse(self):
 		self.subsecs = self._get_uint16(2)
+		self._get_unknown(4, 8) # limits?
 		self._get_zero(12, 4)
 		self.name = self._get_name(16, 8)
 		self.subsec_counts = [self.subsecs]
@@ -355,6 +380,7 @@ class SchemaNetSection(Section):
 	secname = 'Schema/net'
 	def parse(self):
 		self.subsecs = self._get_uint16(2)
+		self._get_unknown(4, 8) # limits?
 		self._get_zero(12, 4)
 		self.name = self._get_name(16, 8)
 		self.subsec_counts = [self.subsecs]
@@ -367,6 +393,7 @@ class PathSection(Section):
 	secname = 'Path'
 	def parse(self):
 		self.subsecs = self._get_uint16(2)
+		self._get_unknown(4, 8) # limits?
 		self._get_zero(12, 12)
 		self.subsec_counts = [self.subsecs]
 
@@ -377,11 +404,14 @@ class PolygonSection(Section):
 	sectype = 0x21
 	secname = 'Polygon'
 	def parse(self):
+		self._get_unknown(2, 2)
+		self._get_unknown(4, 8) # limits?
 		self.width_2 = self._get_uint16(12)
 		self.spacing_2 = self._get_uint16(14)
 		self._get_zero(16, 2)
 		self.layer = self._get_uint8(18)
 		self.pour = 'hatch' if self._get_uint8_mask(19, 0x01) else 'solid'
+		self._get_unknown_mask(19, 0xfe)
 		self._get_zero(20, 4)
 
 	def __str__(self):
@@ -391,7 +421,7 @@ class LineSection(Section):
 	sectype = 0x22
 	secname = 'Line'
 	def parse(self):
-		# Unknown byte: 2
+		self._get_unknown(2, 1)
 		self.layer = self._get_uint8(3)
 		self.width_2 = self._get_uint16(20)
 		self.linetype = self._get_uint8(23)
@@ -480,7 +510,7 @@ class CircleSection(Section):
 		self.x1 = self._get_int32(4)
 		self.y1 = self._get_int32(8)
 		self.r = self._get_int32(12)
-		# Unknown bytes: 16-19, almost always the same as bytes 12-15
+		self._get_unknown(16, 4) # Almost always the same as bytes 12-15
 		self.width_2 = self._get_uint32(20)
 		#assert r == _get_int32(16) # Almost always the same...
 
@@ -491,7 +521,7 @@ class RectangleSection(Section):
 	sectype = 0x26
 	secname = 'Rectangle'
 	def parse(self):
-		# Unknown byte: 2
+		self._get_unknown(2, 1)
 		self.layer = self._get_uint8(3)
 		self.x1 = self._get_int32(4)
 		self.y1 = self._get_int32(8)
@@ -507,8 +537,10 @@ class JunctionSection(Section):
 	sectype = 0x27
 	secname = 'Junction'
 	def parse(self):
+		self._get_unknown(2, 2)
 		self.x = self._get_int32(4)
 		self.y = self._get_int32(8)
+		self._get_unknown(12, 2)
 		self._get_zero(14, 10)
 
 	def __str__(self):
@@ -532,7 +564,7 @@ class PadSection(Section):
 	sectype = 0x2a
 	secname = 'Pad'
 	def parse(self):
-		# Unknown bytes: 2-3
+		self._get_unknown(2, 2)
 		self.x = self._get_int32(4)
 		self.y = self._get_int32(8)
 		self.drill_2 = self._get_uint16(12)
@@ -590,7 +622,7 @@ class DeviceSymbolSection(Section):
 		self._get_zero(2, 2)
 		self.x = self._get_int32(4)
 		self.y = self._get_int32(8)
-		# Unknown bytes: 12-13
+		self._get_unknown(12, 2)
 		self.symno = self._get_uint16(14)
 		self.name = self._get_name(16, 8)
 
@@ -610,6 +642,7 @@ class BoardPackageSection(Section):
 		self.mirrored = bool(self.angle & 0x1000)
 		self.angle &= 0x0fff
 		self._get_zero(18, 2)
+		self._get_unknown(20, 4)
 		self.subsec_counts = [self.subsecs]
 
 	def __str__(self):
@@ -632,6 +665,7 @@ class SchemaSymbol2Section(Section):
 		self.subsecs = self._get_uint16(2)
 		self.x = self._get_int32(4)
 		self.y = self._get_int32(8)
+		self._get_unknown(12, 3)
 		self._get_zero(15, 2)
 		self.angle = [0, 90, 180, 270][self._get_uint8_mask(17, 0x0c) >> 2]
 		self.mirrored = bool(self._get_uint8_mask(17, 0x10))
@@ -639,6 +673,7 @@ class SchemaSymbol2Section(Section):
 		self.smashed = self._get_uint8_mask(18, 0x01) == 0x01
 		self._get_zero_mask(18, 0xfe)
 		self._get_zero(19, 1)
+		self._get_unknown(20, 4)
 		self.subsec_counts = [self.subsecs]
 
 	def __str__(self):
@@ -664,7 +699,7 @@ class DevicePackageSection(Section):
 	sectype = 0x36
 	secname = 'Device/package'
 	def parse(self):
-		# Unknown bytes: 2-3
+		self._get_unknown(2, 2)
 		self.pacno = self._get_uint16(4)
 		self.variant = self._get_name(19, 5)
 		self.table = self._get_name(6, 13)
@@ -678,7 +713,7 @@ class DeviceSection(Section):
 	def parse(self):
 		self.symsubsecs = self._get_uint16(2)
 		self.pacsubsecs = self._get_uint16(4)
-		# Unknown byte: 6
+		self._get_unknown(6, 1)
 		self.con_byte = self._get_uint8_mask(7, 0x80) >> 7
 		self.pin_bits = self._get_uint8_mask(7, 0x0f)
 		self._get_zero_mask(7, 0x70)
@@ -697,6 +732,7 @@ class SchemaSymbolSection(Section):
 		self.subsecs = self._get_uint16(2)
 		self.libno = self._get_uint16(4)
 		self.symno = self._get_uint16(6)
+		self._get_unknown(8, 3)
 		self.value = self._get_name(16, 8)
 		self.name = self._get_name(11, 5)
 		self.subsec_counts = [self.subsecs]
@@ -733,6 +769,7 @@ class SchemaConnectionSection(Section):
 	def parse(self):
 		self._get_zero(2, 2)
 		self.symno = self._get_uint16(4)
+		self._get_unknown(6, 2)
 		self.pin = self._get_uint16(8)
 		self._get_zero(10, 14)
 
