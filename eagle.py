@@ -216,7 +216,8 @@ class LayerSection(Section):
 		self.other = self._get_uint8(4)
 		self.fill = self._get_uint8(5)
 		self.color = self._get_uint8(6)
-		self._get_zero(7, 8)
+		self._get_unknown(7, 1)
+		self._get_zero(8, 7)
 		self.name = self._get_name(15, 9)
 		self.side = 'bottom' if self.flags & 0x10 else 'top'
 		assert self.flags & 0x0c in (0x00, 0x0c), 'I thought visibility always set two bits?'
