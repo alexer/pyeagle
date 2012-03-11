@@ -196,14 +196,20 @@ class LayerSection(Section):
 	def __str__(self):
 		return '%s %s: layer %d, other %d, side %s, visible %d, fill %d, color %d' % (self.secname, self.name, self.layer, self.other, self.side, self.ulpvisible, self.fill, self.color)
 
-class XrefFormatSection(Section):
+class SchemaSection(Section):
 	sectype = 0x14
-	secname = 'Xref format'
+	secname = 'Schema'
 	def parse(self):
-		self.format = self._get_name(19, 5)
+		# Unknown bytes: 2-3
+		self.libsubsecs = self._get_uint32(4)
+		self.shtsubsecs = self._get_uint32(8)
+		self.atrsubsecs = self._get_uint32(12)
+		self._get_zero(16, 3)
+		self.xref_format = self._get_name(19, 5)
+		self.subsec_counts = [self.atrsubsecs, self.libsubsecs, self.shtsubsecs]
 
 	def __str__(self):
-		return '%s: %s' % (self.secname, self.format)
+		return '%s: xref format %s, attrsubsecs %d, libsubsecs %d, sheetsubsecs %d' % (self.secname, self.xref_format, self.atrsubsecs, self.libsubsecs, self.shtsubsecs)
 
 class LibrarySection(Section):
 	sectype = 0x15
@@ -257,9 +263,9 @@ class PackagesSection(Section):
 	def __str__(self):
 		return '%s: libname %s, desc %s, subsecs %d, children %d' % (self.secname, self.libname, self.desc, self.subsecs, self.children)
 
-class SchemaSection(Section):
+class SchemaSheetSection(Section):
 	sectype = 0x1a
-	secname = 'Schema'
+	secname = 'Schema/sheet'
 	def parse(self):
 		self.drawsubsecs = self._get_uint16(2)
 		self.minx = self._get_int16(4)
@@ -742,8 +748,8 @@ class AttributeValueSection(Section):
 		return '%s %s on symbol %s' % (self.secname, self.attribute, self.symbol)
 
 sections = {}
-for section in [StartSection, Unknown11Section, GridSection, LayerSection, XrefFormatSection, LibrarySection, DevicesSection,
-		SymbolsSection, PackagesSection, SchemaSection, BoardSection, BoardNetSection, SymbolSection, PackageSection, SchemaNetSection,
+for section in [StartSection, Unknown11Section, GridSection, LayerSection, SchemaSection, LibrarySection, DevicesSection,
+		SymbolsSection, PackagesSection, SchemaSheetSection, BoardSection, BoardNetSection, SymbolSection, PackageSection, SchemaNetSection,
 		PathSection, PolygonSection, LineSection, CircleSection, RectangleSection, JunctionSection,
 		HoleSection, PadSection, SmdSection, PinSection, DeviceSymbolSection, BoardPackageSection, BoardPackage2Section,
 		SchemaSymbol2Section, TextSection, NetBusLabelSection, SmashedNameSection, SmashedValueSection, DevicePackageSection, DeviceSection,

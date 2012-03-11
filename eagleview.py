@@ -38,7 +38,7 @@ class EagleDrawing(BaseDrawing):
 		self.draw_item(cr, self.module)
 
 	def draw_item(self, cr, item):
-		if isinstance(item, eagle.SchemaSection):
+		if isinstance(item, eagle.SchemaSheetSection):
 			self.draw_schema(cr, item)
 		elif isinstance(item, eagle.BoardSection):
 			self.draw_board(cr, item)
@@ -191,6 +191,8 @@ if __name__ == "__main__":
 		libs = [subsec for subsec in root.subsections[1] if isinstance(subsec, eagle.LibrarySection)]
 		if itemtype == 'schema':
 			item = [subsec for subsec in root.subsections[1] if isinstance(subsec, eagle.SchemaSection)][0]
+			libs = item.subsections[1]
+			item = item.subsections[2][0]
 		elif itemtype == 'board':
 			item = [subsec for subsec in root.subsections[1] if isinstance(subsec, eagle.BoardSection)][0]
 		else:
