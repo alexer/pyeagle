@@ -577,7 +577,8 @@ class RectangleSection(Section):
 		self.y1 = self._get_int32(8)
 		self.x2 = self._get_int32(12)
 		self.y2 = self._get_int32(16)
-		self.angle = self._get_uint16(20)
+		self.angle = self._get_uint16_mask(20, 0x0fff)
+		self._get_zero16_mask(20, 0xf000)
 		self._get_zero(22, 2)
 
 	def __str__(self):
