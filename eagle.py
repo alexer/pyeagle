@@ -359,12 +359,14 @@ class BoardNetSection(Section):
 		self.miny = self._get_int16(6)
 		self.maxx = self._get_int16(8)
 		self.maxy = self._get_int16(10)
-		self._get_zero(12, 4)
+		self.airwires = not bool(self._get_uint8_mask(12, 0x02))
+		self._get_zero_mask(12, 0xfd)
+		self._get_zero(13, 3)
 		self.name = self._get_name(16, 8)
 		self.subsec_counts = [self.subsecs]
 
 	def __str__(self):
-		return '%s %s: limits (%dmil, %dmil), (%dmil, %dmil), subsecs %d' % (self.secname, self.name, self.minx, self.miny, self.maxx, self.maxy, self.subsecs)
+		return '%s %s: limits (%dmil, %dmil), (%dmil, %dmil), airwires %d, subsecs %d' % (self.secname, self.name, self.minx, self.miny, self.maxx, self.maxy, self.airwires, self.subsecs)
 
 class SymbolSection(Section):
 	sectype = 0x1d
