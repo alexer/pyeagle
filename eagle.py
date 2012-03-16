@@ -418,7 +418,7 @@ class PolygonSection(Section):
 		self.layer = self._get_uint8(18)
 		self.pour = 'hatch' if self._get_uint8_mask(19, 0x01) else 'solid'
 		self._get_unknown_mask(19, 0xfe)
-		self._get_zero(20, 4)
+		self._get_unknown(20, 4)
 		self.subsec_counts = [self.subsecs]
 
 	def __str__(self):
@@ -437,7 +437,8 @@ class LineSection(Section):
 
 		if self.linetype != 0x01:
 			self.stflags = self._get_uint8_mask(22, 0x33)
-			self._get_zero_mask(22, 0xcc)
+			self._get_zero_mask(22, 0xc0)
+			self._get_unknown_mask(22, 0x0c)
 
 			# Cap style and positive curve are present on bare lines too, that's probably a bug
 			self.clockwise = bool(self.stflags & 0x20)
