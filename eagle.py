@@ -188,27 +188,30 @@ class StartSection(Section):
 class Unknown11Section(UnknownSection):
 	sectype = 0x11
 
+# 4 bits of unit
+# higher 2 bits tell which unit is used for display
+# lower 2 bits tell which unit is used for saving
 grid_units2 = 'mic mm mil in'.split()
 grid_units4 = [save if save == disp else '%s as %s' % (save, disp) for disp in grid_units2 for save in grid_units2]
 class GridSection(Section):
 	sectype = 0x12
 	secname = 'Grid'
 	def parse(self):
-		self.display = self._get_uint8_mask(2, 0x1)
-		self.style = 'lines dots'.split()[self._get_uint8_mask(2, 0x2) >> 1]
+		self.display = self._get_uint8_mask(2, 0x01)
+		self.style = self._get_uint8_mask(2, 0x02) >> 1
 		self._get_zero_mask(2, 0xfc)
-		# 4 bits of unit
-		# higher 2 bits tell which unit is used for display
-		# lower 2 bits tell which unit is used for saving
-		self.unit = grid_units4[self._get_uint8_mask(3, 0x0f)]
-		self.altunit = grid_units4[self._get_uint8_mask(3, 0xf0) >> 4]
+		self.unit = self._get_uint8_mask(3, 0x0f)
+		self.altunit = self._get_uint8_mask(3, 0xf0) >> 4
 		self.multiple = self._get_uint24(4)
 		self._get_zero(7, 1)
 		self.size = self._get_double(8)
 		self.altsize = self._get_double(16)
 
 	def __str__(self):
-		return '%s: display %s, style %s, size %s%s, multiple %d, alt %s%s' % (self.secname, self.display, self.style, self.size, self.unit, self.multiple, self.altsize, self.altunit)
+		style = 'lines dots'.split()[self.style]
+		unit = grid_units4[self.unit]
+		altunit = grid_units4[self.altunit]
+		return '%s: display %s, style %s, size %s%s, multiple %d, alt %s%s' % (self.secname, self.display, style, self.size, unit, self.multiple, self.altsize, altunit)
 
 class LayerSection(Section):
 	sectype = 0x13
