@@ -355,13 +355,16 @@ class BoardNetSection(Section):
 	secname = 'Board/net'
 	def parse(self):
 		self.subsecs = self._get_uint16(2)
-		self._get_unknown(4, 8) # limits?
+		self.minx = self._get_int16(4)
+		self.miny = self._get_int16(6)
+		self.maxx = self._get_int16(8)
+		self.maxy = self._get_int16(10)
 		self._get_zero(12, 4)
 		self.name = self._get_name(16, 8)
 		self.subsec_counts = [self.subsecs]
 
 	def __str__(self):
-		return '%s %s: subsecs %d' % (self.secname, self.name, self.subsecs)
+		return '%s %s: limits (%dmil, %dmil), (%dmil, %dmil), subsecs %d' % (self.secname, self.name, self.minx, self.miny, self.maxx, self.maxy, self.subsecs)
 
 class SymbolSection(Section):
 	sectype = 0x1d
@@ -401,32 +404,42 @@ class SchemaNetSection(Section):
 	secname = 'Schema/net'
 	def parse(self):
 		self.subsecs = self._get_uint16(2)
-		self._get_unknown(4, 8) # limits?
+		# Seem to always be (32767mil, 32767mil), (-32768mil, -32768mil)
+		self.minx = self._get_int16(4)
+		self.miny = self._get_int16(6)
+		self.maxx = self._get_int16(8)
+		self.maxy = self._get_int16(10)
 		self._get_zero(12, 4)
 		self.name = self._get_name(16, 8)
 		self.subsec_counts = [self.subsecs]
 
 	def __str__(self):
-		return '%s %s: subsecs %s' % (self.secname, self.name, self.subsecs)
+		return '%s %s: limits (%dmil, %dmil), (%dmil, %dmil), subsecs %s' % (self.secname, self.name, self.minx, self.miny, self.maxx, self.maxy, self.subsecs)
 
 class PathSection(Section):
 	sectype = 0x20
 	secname = 'Path'
 	def parse(self):
 		self.subsecs = self._get_uint16(2)
-		self._get_unknown(4, 8) # limits?
+		self.minx = self._get_int16(4)
+		self.miny = self._get_int16(6)
+		self.maxx = self._get_int16(8)
+		self.maxy = self._get_int16(10)
 		self._get_zero(12, 12)
 		self.subsec_counts = [self.subsecs]
 
 	def __str__(self):
-		return '%s: subsecs %d' % (self.secname, self.subsecs)
+		return '%s: limits (%dmil, %dmil), (%dmil, %dmil), subsecs %d' % (self.secname, self.minx, self.miny, self.maxx, self.maxy, self.subsecs)
 
 class PolygonSection(Section):
 	sectype = 0x21
 	secname = 'Polygon'
 	def parse(self):
 		self.subsecs = self._get_uint16(2)
-		self._get_unknown(4, 8) # limits?
+		self.minx = self._get_int16(4)
+		self.miny = self._get_int16(6)
+		self.maxx = self._get_int16(8)
+		self.maxy = self._get_int16(10)
 		self.width_2 = self._get_uint16(12)
 		self.spacing_2 = self._get_uint16(14)
 		self._get_unknown(16, 2)
@@ -437,7 +450,7 @@ class PolygonSection(Section):
 		self.subsec_counts = [self.subsecs]
 
 	def __str__(self):
-		return '%s: width %f", spacing %f", pour %s, layer %d, subsecs %d' % (self.secname, u2in(self.width_2*2), u2in(self.spacing_2*2), self.pour, self.layer, self.subsecs)
+		return '%s: limits (%dmil, %dmil), (%dmil, %dmil), width %f", spacing %f", pour %s, layer %d, subsecs %d' % (self.secname, self.minx, self.miny, self.maxx, self.maxy, u2in(self.width_2*2), u2in(self.spacing_2*2), self.pour, self.layer, self.subsecs)
 
 class LineSection(Section):
 	sectype = 0x22
