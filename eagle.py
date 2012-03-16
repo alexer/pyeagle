@@ -449,15 +449,20 @@ class PolygonSection(Section):
 		self.maxy = self._get_int16(10)
 		self.width_2 = self._get_uint16(12)
 		self.spacing_2 = self._get_uint16(14)
-		self._get_unknown(16, 2)
+		self.isolate_2 = self._get_uint16(16)
 		self.layer = self._get_uint8(18)
 		self.pour = 'hatch' if self._get_uint8_mask(19, 0x01) else 'solid'
-		self._get_unknown_mask(19, 0xfe)
+		self.rank = self._get_uint8_mask(19, 0x0e) >> 1
+		assert 1 <= self.rank <= 6
+		self.thermals = bool(self._get_uint8_mask(19, 0x80))
+		self.orphans = bool(self._get_uint8_mask(19, 0x40))
+		self._get_zero_mask(19, 0x30)
+		# These unknown bytes seem to somehow relate to whether the polygon is currently calculated or not (they are all zero when it's not calculated)
 		self._get_unknown(20, 4)
 		self.subsec_counts = [self.subsecs]
 
 	def __str__(self):
-		return '%s: limits (%dmil, %dmil), (%dmil, %dmil), width %f", spacing %f", pour %s, layer %d, subsecs %d' % (self.secname, self.minx, self.miny, self.maxx, self.maxy, u2in(self.width_2*2), u2in(self.spacing_2*2), self.pour, self.layer, self.subsecs)
+		return '%s: limits (%dmil, %dmil), (%dmil, %dmil), width %f", spacing %f", isolate %f", pour %s, rank %d, thermals %d, orphans %d, layer %d, subsecs %d' % (self.secname, self.minx, self.miny, self.maxx, self.maxy, u2in(self.width_2*2), u2in(self.spacing_2*2), u2in(self.isolate_2*2), self.pour, self.rank, self.thermals, self.orphans, self.layer, self.subsecs)
 
 class LineSection(Section):
 	sectype = 0x22
