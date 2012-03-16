@@ -213,29 +213,36 @@ class GridSection(Section):
 		altunit = grid_units4[self.altunit]
 		return '%s: display %s, style %s, size %s%s, multiple %d, alt %s%s' % (self.secname, self.display, style, self.size, unit, self.multiple, self.altsize, altunit)
 
+layer_fills = dict(enumerate('stroke fill horiz thinslash thickslash thickback thinback square diamond dither coarse fine bottomleft bottomright topright topleft'.split()))
+layer_colors = dict(enumerate('black darkblue darkgreen darkcyan darkred darkpurple darkyellow grey darkgrey blue green cyan red purple yellow lightgrey'.split()))
 class LayerSection(Section):
 	sectype = 0x13
 	secname = 'Layer'
 	def parse(self):
-		self.flags = self._get_uint8_mask(2, 0x1e)
+		self.side = self._get_uint8_mask(2, 0x10)
+		visible = self._get_uint8_mask(2, 0x0c) # whether objects on this layer are currently shown
+		self.available = bool(self._get_uint8_mask(2, 0x02)) # not available => not visible in layer display dialog at all
 		self._get_zero_mask(2, 0xe0)
 		self._get_unknown_mask(2, 0x01)
 		self.layer = self._get_uint8(3)
-		self.other = self._get_uint8(4)
-		self.fill = self._get_uint8(5)
-		self.color = self._get_uint8(6)
+		self.other = self._get_uint8(4) # the number of the matching layer on the other side
+		self.fill = self._get_uint8_mask(5, 0x0f)
+		self._get_zero_mask(5, 0xf0)
+		self.color = self._get_uint8_mask(6, 0x3f)
+		self._get_zero_mask(6, 0xc0)
 		self._get_unknown(7, 1)
 		self._get_zero(8, 7)
 		self.name = self._get_name(15, 9)
-		self.side = 'bottom' if self.flags & 0x10 else 'top'
-		assert self.flags & 0x0c in (0x00, 0x0c), 'I thought visibility always set two bits?'
-		self.visible = self.flags & 0x0c == 0x0c # whether objects on this layer are currently shown
-		self.available = self.flags & 0x02 == 0x02 # not available => not visible in layer display dialog at all
+		assert visible in (0x00, 0x0c), 'I thought visibility always set two bits?'
+		self.visible = bool(visible)
 		# The ulp "visible" flag is basically "visible and not hidden", or "flags & 0x0e == 0x0e"
 		self.ulpvisible = self.visible and self.available
 
 	def __str__(self):
-		return '%s %s: layer %d, other %d, side %s, visible %d, fill %d, color %d' % (self.secname, self.name, self.layer, self.other, self.side, self.ulpvisible, self.fill, self.color)
+		side = 'bottom' if self.side else 'top'
+		fill = layer_fills[self.fill]
+		color = layer_colors.get(self.color, '?grey?')
+		return '%s %s: layer %d, other %d, side %s, visible %d, fill %d %s, color %d %s' % (self.secname, self.name, self.layer, self.other, self.side, self.ulpvisible, self.fill, fill, self.color, color)
 
 class SchemaSection(Section):
 	sectype = 0x14
