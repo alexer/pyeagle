@@ -107,6 +107,12 @@ class Section:
 		self.zero[pos] |= mask
 		assert ord(self.data[pos]) & mask == 0x00, 'Unknown bits in ' + self.secname + ': ' + hex(ord(self.data[pos]) & mask)
 
+	def _get_zero16_mask(self, pos, mask):
+		self.zero[pos] |= mask & 0xff
+		self.zero[pos+1] |= (mask >> 8) & 0xff
+		value = struct.unpack('<H', self.data[pos:pos+2])[0] & mask
+		assert value == 0x00, 'Unknown bits in ' + self.secname + ': ' + hex(value)
+
 	def _get_uint32(self, pos): return struct.unpack('<I', self._get_bytes(pos, 4))[0]
 	def _get_uint24(self, pos): return struct.unpack('<I', self._get_bytes(pos, 3) + '\x00')[0]
 	def _get_uint16(self, pos): return struct.unpack('<H', self._get_bytes(pos, 2))[0]
@@ -121,6 +127,11 @@ class Section:
 		self.known[pos] |= mask
 		return ord(self.data[pos]) & mask
 
+	def _get_uint16_mask(self, pos, mask):
+		self.known[pos] |= mask & 0xff
+		self.known[pos+1] |= (mask >> 8) & 0xff
+		return struct.unpack('<H', self.data[pos:pos+2])[0] & mask
+
 	def _get_name(self, pos, size): return get_name(self._get_bytes(pos, size))
 
 class UnknownSection(Section):
@@ -133,36 +144,33 @@ class UnknownSection(Section):
 
 class TextBaseSection(Section):
 	def parse(self):
-		# XXX: Clean these up
-		self.font = self._get_uint8(2)
+		self.font = self._get_uint8_mask(2, 0x03)
+		self._get_zero_mask(2, 0xfc)
 		self.layer = self._get_uint8(3)
 		self.x = self._get_int32(4)
 		self.y = self._get_int32(8)
 		self.size_2 = self._get_uint16(12)
-		self.ratio = (self._get_uint16(14) >> 2) & 0x1f
-		self.angle = self._get_uint16(16)
-		text = self._get_name(18, 6)
-		if self.sectype == 0x31:
-			self.text = text
-		elif self.sectype == 0x41:
-			self.name = text
-		else:
-			assert self.data[18:24] == '\x00'*6
+		self.ratio = self._get_uint8_mask(14, 0x7c) >> 2
+		self._get_zero_mask(14, 0x83)
+		self._get_zero(15, 1)
+		self.angle = self._get_uint16_mask(16, 0x0fff)
+		self.mirrored = bool(self._get_uint16_mask(16, 0x1000))
+		self.spin = bool(self._get_uint16_mask(16, 0x4000))
+		self._get_zero16_mask(16, 0xa000)
+		self.text = self._get_name(18, 6)
+		assert self.sectype == 0x31 or self.angle & 0x3ff == 0x000, 'Shouldn\'t angle be one of 0, 90, 180 or 270 for this section?'
+		assert self.sectype in (0x31, 0x41) or self.data[18:24] == '\x00'*6, 'This section shouldn\'t contain any text?'
 
 	def __str__(self):
 		font = 'vector proportional fixed'.split()[self.font]
-		# angle & 0x4000 => spin, no idea what that does though..
-		if self.sectype == 0x31:
-			angle = 360 * (self.angle & 0xfff) / 4096.
-		else:
-			angle = [0, 90, 180, 270][(self.angle & 0x0c00) >> 10]
+		angle = 360 * self.angle / 4096.
 		if self.sectype == 0x31:
 			extra = ', text ' + self.text
 		elif self.sectype == 0x41:
-			extra = ', name ' + self.name
+			extra = ', name ' + self.text
 		else:
 			extra = ''
-		return '%s: at (%f", %f") size %f", angle %s, layer %d, ratio %d%%, font %s%s' % (self.secname, u2in(self.x), u2in(self.y), u2in(self.size_2*2), angle, self.layer, self.ratio, font, extra)
+		return '%s: at (%f", %f") size %f", angle %s, mirror %d, spin %d, layer %d, ratio %d%%, font %s%s' % (self.secname, u2in(self.x), u2in(self.y), u2in(self.size_2*2), angle, self.mirrored, self.spin, self.layer, self.ratio, font, extra)
 
 class StartSection(Section):
 	sectype = 0x10
