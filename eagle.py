@@ -170,10 +170,7 @@ class StartSection(Section):
 	def parse(self):
 		self.subsecs = self._get_uint16(2)
 		self.numsecs = self._get_uint32(4)
-		self._get_unknown(8, 4)
-		self._get_zero(12, 1)
-		self._get_unknown(13, 1)
-		self._get_unknown(14, 10)
+		self._get_unknown(8, 16)
 		# XXX: hack
 		self.subsec_counts = [self.subsecs, self.numsecs - self.subsecs - 1]
 
