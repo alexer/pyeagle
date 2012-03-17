@@ -697,9 +697,9 @@ class BoardPackageSection(Section):
 		self.y = self._get_int32(8)
 		self.libno = self._get_uint16(12)
 		self.pacno = self._get_uint16(14)
-		self.angle = self._get_uint16(16)
-		self.mirrored = bool(self.angle & 0x1000)
-		self.angle &= 0x0fff
+		self.angle = self._get_uint16_mask(16, 0x0fff)
+		self.mirrored = bool(self._get_uint16_mask(16, 0x1000))
+		self._get_zero16_mask(16, 0xe000)
 		self._get_unknown(18, 1)
 		self._get_zero(19, 1)
 		self._get_unknown(20, 4)
