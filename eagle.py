@@ -127,7 +127,8 @@ class TextBaseSection(Section):
 		self.y = self._get_int32(8)
 		self.size_2 = self._get_uint16(12)
 		self.ratio = self._get_uint8_mask(14, 0x7c) >> 2
-		self._get_zero_mask(14, 0x83)
+		self._get_zero_mask(14, 0x03)
+		self._get_unknown_mask(14, 0x80)
 		self._get_unknown(15, 1)
 		self.angle = self._get_uint16_mask(16, 0x0fff)
 		self.mirrored = bool(self._get_uint16_mask(16, 0x1000))
@@ -429,7 +430,7 @@ class PolygonSection(Section):
 		self.layer = self._get_uint8(18)
 		self.pour = 'hatch' if self._get_uint8_mask(19, 0x01) else 'solid'
 		self.rank = self._get_uint8_mask(19, 0x0e) >> 1
-		assert 1 <= self.rank <= 6
+		assert 1 <= self.rank <= 7, 'Unknown rank: %d' % (self.rank, ) # 7 for schema polygons
 		self.thermals = bool(self._get_uint8_mask(19, 0x80))
 		self.orphans = bool(self._get_uint8_mask(19, 0x40))
 		self._get_zero_mask(19, 0x30)
