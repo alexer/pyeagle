@@ -96,6 +96,7 @@ class Section:
 
 	def _get_int32(self, pos): return struct.unpack('<i', self._get_bytes(pos, 4))[0]
 	def _get_int16(self, pos): return struct.unpack('<h', self._get_bytes(pos, 2))[0]
+	def _get_int8(self, pos): return struct.unpack('<b', self._get_bytes(pos, 1))[0]
 
 	def _get_double(self, pos): return struct.unpack('<d', self._get_bytes(pos, 8))[0]
 
@@ -870,10 +871,21 @@ class FrameSection(Section):
 	sectype = 0x43
 	secname = 'Frame'
 	def parse(self):
-		self._get_unknown(2, 22)
+		self._get_unknown(2, 1)
+		self.layer = self._get_uint8(3)
+		self.x1 = self._get_int32(4)
+		self.y1 = self._get_int32(8)
+		self.x2 = self._get_int32(12)
+		self.y2 = self._get_int32(16)
+		self.cols = self._get_int8(20)
+		self.rows = self._get_int8(21)
+		self.borders = self._get_uint8_mask(22, 0x0f)
+		self._get_zero_mask(22, 0xf0)
+		self._get_zero(23, 1)
 
 	def __str__(self):
-		return self.secname
+		borders = ' '.join(border for border in ['bottom' if self.borders & 0x01 else None, 'right' if self.borders & 0x02 else None, 'top' if self.borders & 0x04 else None, 'left' if self.borders & 0x08 else None] if border) or 'none'
+		return '%s: from (%f", %f") to (%f", %f"), size %dx%d, layer %d, border %s' % (self.secname, u2in(self.x1), u2in(self.y1), u2in(self.x2), u2in(self.y2), self.cols, self.rows, self.layer, borders)
 
 sections = {}
 for section in [StartSection, Unknown11Section, GridSection, LayerSection, SchemaSection, LibrarySection, DevicesSection,
