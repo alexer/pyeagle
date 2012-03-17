@@ -654,23 +654,25 @@ class PinSection(Section):
 	sectype = 0x2c
 	secname = 'Pin'
 	def parse(self):
-		self.flags1 = self._get_uint8_mask(2, 0xc3)
+		self.function = self._get_uint8_mask(2, 0x03)
+		self.visible = self._get_uint8_mask(2, 0xc0) >> 6
 		self._get_zero_mask(2, 0x3c)
 		self._get_zero(3, 1)
 		self.x = self._get_int32(4)
 		self.y = self._get_int32(8)
-		self.flags2 = self._get_uint8(12)
+		self.direction = self._get_uint8_mask(12, 0x0f)
+		self.length = self._get_uint8_mask(12, 0x30) >> 4
+		self.angle = self._get_uint8_mask(12, 0xc0) << 4
 		self.swaplevel = self._get_uint8(13)
 		self.name = self._get_name(14, 10)
 
-		self.function = 'None Dot Clk DotClk'.split()[self.flags1 & 0x03]
-		self.visible = 'Off Pad Pin Both'.split()[(self.flags1 & 0xc0) >> 6]
-		self.direction = 'Nc In Out I/O OC Pwr Pas Hiz Sup'.split()[self.flags2 & 0x0f]
-		self.length = 'Point Short Middle Long'.split()[(self.flags2 & 0x30) >> 4]
-		self.angle = [0, 90, 180, 270][(self.flags2 & 0xc0) >> 6]
-
 	def __str__(self):
-		return '%s: at (%f", %f"), name %s, angle %s, direction %s, swaplevel %s, length %s, function %s, visible %s' % (self.secname, u2in(self.x), u2in(self.y), self.name, self.angle, self.direction, self.swaplevel, self.length, self.function, self.visible)
+		func = 'None Dot Clk DotClk'.split()[self.function]
+		vis = 'Off Pad Pin Both'.split()[self.visible]
+		dir_ = 'Nc In Out I/O OC Pwr Pas Hiz Sup'.split()[self.direction]
+		len_ = 'Point Short Middle Long'.split()[self.length]
+		angle = 360 * self.angle / 4096.
+		return '%s: at (%f", %f"), name %s, angle %s, direction %s, swaplevel %s, length %s, function %s, visible %s' % (self.secname, u2in(self.x), u2in(self.y), self.name, angle, dir_, self.swaplevel, len_, func, vis)
 
 class DeviceSymbolSection(Section):
 	sectype = 0x2d
