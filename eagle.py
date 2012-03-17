@@ -13,30 +13,6 @@ def dump_dec_hex_ascii(data):
 		print ' '.join(' %s ' % (byte if 32 <= ord(byte) <= 127 else '.',) for byte in data)
 		print
 
-pth_pad_flags = [
-	(0x01, None, 'stop'),
-	(0x04, None, 'thermals'),
-	(0x08, 'first', None),
-]
-
-smd_pad_flags = [
-	(0x01, None, 'stop'),
-	(0x02, None, 'cream'),
-	(0x04, None, 'thermals'),
-]
-
-def get_flags(value, flagdata):
-	result = []
-	for mask, true, false in flagdata:
-		if value & mask == mask:
-			value &= ~mask
-			name = true
-		else:
-			name = false
-		if name is not None:
-			result.append(name)
-	return result
-
 # Values are in tenths of a micrometre
 u2mm = lambda val: val/10/1000
 u2in = lambda val: val/2.54/100/1000
@@ -642,12 +618,16 @@ class PadSection(Section):
 		self.y = self._get_int32(8)
 		self.drill_2 = self._get_uint16(12)
 		self.diameter_2 = self._get_uint16(14)
-		self.angle = self._get_uint16(16)
-		self.flags = self._get_uint8(18)
+		self.angle = self._get_uint16_mask(16, 0x0fff)
+		self._get_zero16_mask(16, 0xf000)
+		self.stop = not bool(self._get_uint8_mask(18, 0x01))
+		self.thermals = not bool(self._get_uint8_mask(18, 0x04))
+		self.first = bool(self._get_uint8_mask(18, 0x08))
+		self._get_zero_mask(18, 0xf2)
 		self.name = self._get_name(19, 5)
 
 	def __str__(self):
-		return '%s: at (%f", %f"), diameter %f", drill %f", angle %f, flags: %s, name %s' % (self.secname, u2in(self.x), u2in(self.y), u2in(self.diameter_2*2), u2in(self.drill_2*2), 360 * self.angle / 4096., ', '.join(get_flags(self.flags, pth_pad_flags)), self.name)
+		return '%s: at (%f", %f"), diameter %f", drill %f", angle %f, first %d, stop %d, thermals %d, name %s' % (self.secname, u2in(self.x), u2in(self.y), u2in(self.diameter_2*2), u2in(self.drill_2*2), 360 * self.angle / 4096., self.first, self.stop, self.thermals, self.name)
 
 class SmdSection(Section):
 	sectype = 0x2b
@@ -659,12 +639,16 @@ class SmdSection(Section):
 		self.y = self._get_int32(8)
 		self.width_2 = self._get_uint16(12)
 		self.height_2 = self._get_uint16(14)
-		self.angle = self._get_uint16(16)
-		self.flags = self._get_uint8(18)
+		self.angle = self._get_uint16_mask(16, 0x0fff)
+		self._get_zero16_mask(16, 0xf000)
+		self.stop = not bool(self._get_uint8_mask(18, 0x01))
+		self.cream = not bool(self._get_uint8_mask(18, 0x02))
+		self.thermals = not bool(self._get_uint8_mask(18, 0x04))
+		self._get_zero_mask(18, 0xf8)
 		self.name = self._get_name(19, 5)
 
 	def __str__(self):
-		return '%s: at (%f", %f"), size %f" x %f", angle %f, layer %d, roundness %d%%, flags: %s, name %s' % (self.secname, u2in(self.x), u2in(self.y), u2in(self.width_2*2), u2in(self.height_2*2), 360 * self.angle / 4096., self.layer, self.roundness, ', '.join(get_flags(self.flags, smd_pad_flags)), self.name)
+		return '%s: at (%f", %f"), size %f" x %f", angle %f, layer %d, roundness %d%%, stop %d, cream %d, thermals %d, name %s' % (self.secname, u2in(self.x), u2in(self.y), u2in(self.width_2*2), u2in(self.height_2*2), 360 * self.angle / 4096., self.layer, self.roundness, self.stop, self.cream, self.thermals, self.name)
 
 class PinSection(Section):
 	sectype = 0x2c
