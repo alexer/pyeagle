@@ -128,7 +128,7 @@ class TextBaseSection(Section):
 		self.size_2 = self._get_uint16(12)
 		self.ratio = self._get_uint8_mask(14, 0x7c) >> 2
 		self._get_zero_mask(14, 0x83)
-		self._get_zero(15, 1)
+		self._get_unknown(15, 1)
 		self.angle = self._get_uint16_mask(16, 0x0fff)
 		self.mirrored = bool(self._get_uint16_mask(16, 0x1000))
 		self.spin = bool(self._get_uint16_mask(16, 0x4000))
@@ -700,7 +700,8 @@ class BoardPackageSection(Section):
 		self.angle = self._get_uint16(16)
 		self.mirrored = bool(self.angle & 0x1000)
 		self.angle &= 0x0fff
-		self._get_zero(18, 2)
+		self._get_unknown(18, 1)
+		self._get_zero(19, 1)
 		self._get_unknown(20, 4)
 		self.subsec_counts = [self.subsecs]
 
