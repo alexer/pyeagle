@@ -683,12 +683,14 @@ class DeviceSymbolSection(Section):
 		self._get_zero(2, 2)
 		self.x = self._get_int32(4)
 		self.y = self._get_int32(8)
-		self._get_unknown(12, 2)
+		self.addlevel = self._get_uint8(12)
+		self.swap = self._get_uint8(13)
 		self.symno = self._get_uint16(14)
 		self.name = self._get_name(16, 8)
 
 	def __str__(self):
-		return '%s %d: at (%f", %f"), name %s' % (self.secname, self.symno, u2in(self.x), u2in(self.y), self.name)
+		addlevel = 'Must Can Next Request Always'.split()[self.addlevel]
+		return '%s %d: at (%f", %f"), name %s, swap %d, addlevel %s' % (self.secname, self.symno, u2in(self.x), u2in(self.y), self.name, self.swap, addlevel)
 
 class BoardPackageSection(Section):
 	sectype = 0x2e
@@ -776,7 +778,9 @@ class DeviceSection(Section):
 	def parse(self):
 		self.symsubsecs = self._get_uint16(2)
 		self.pacsubsecs = self._get_uint16(4)
-		self._get_unknown(6, 1)
+		self.value_on = bool(self._get_uint8_mask(6, 0x01))
+		self._get_unknown_mask(6, 0x02)
+		self._get_zero_mask(6, 0xfc)
 		self.con_byte = self._get_uint8_mask(7, 0x80) >> 7
 		self.pin_bits = self._get_uint8_mask(7, 0x0f)
 		self._get_zero_mask(7, 0x70)
@@ -786,7 +790,7 @@ class DeviceSection(Section):
 		self.subsec_counts = [self.symsubsecs, self.pacsubsecs]
 
 	def __str__(self):
-		return '%s %s: prefix %s, desc %s, con_byte %d, pin_bits %d, symsubsecs %d, pacsubsecs %d' % (self.secname, self.name, self.prefix, self.desc, self.con_byte, self.pin_bits, self.symsubsecs, self.pacsubsecs)
+		return '%s %s: prefix %s, desc %s, con_byte %d, pin_bits %d, value_on %d, symsubsecs %d, pacsubsecs %d' % (self.secname, self.name, self.prefix, self.desc, self.con_byte, self.pin_bits, self.value_on, self.symsubsecs, self.pacsubsecs)
 
 class SchemaSymbolSection(Section):
 	sectype = 0x38
