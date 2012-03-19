@@ -614,7 +614,8 @@ class PadSection(Section):
 	sectype = 0x2a
 	secname = 'Pad'
 	def parse(self):
-		self._get_unknown(2, 1)
+		self.shape = self._get_uint8_mask(2, 0x07)
+		self._get_zero_mask(2, 0xf8)
 		self._get_zero(3, 1)
 		self.x = self._get_int32(4)
 		self.y = self._get_int32(8)
@@ -629,7 +630,8 @@ class PadSection(Section):
 		self.name = self._get_name(19, 5)
 
 	def __str__(self):
-		return '%s: at (%f", %f"), diameter %f", drill %f", angle %f, first %d, stop %d, thermals %d, name %s' % (self.secname, u2in(self.x), u2in(self.y), u2in(self.diameter_2*2), u2in(self.drill_2*2), 360 * self.angle / 4096., self.first, self.stop, self.thermals, self.name)
+		shape = 'square round octagon long offset'.split()[self.shape]
+		return '%s: at (%f", %f"), diameter %f", drill %f", angle %f, shape %s, first %d, stop %d, thermals %d, name %s' % (self.secname, u2in(self.x), u2in(self.y), u2in(self.diameter_2*2), u2in(self.drill_2*2), 360 * self.angle / 4096., shape, self.first, self.stop, self.thermals, self.name)
 
 class SmdSection(Section):
 	sectype = 0x2b
