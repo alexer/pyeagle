@@ -67,7 +67,7 @@ class CairoGTK(gtk.DrawingArea):
 				self.pan(rel)
 
 	def _mouseScroll(self, widget, event):
-		zamt = 0.5 if (event.direction == gdk.SCROLL_UP) else 2
+		zamt = 0.8 if (event.direction == gdk.SCROLL_UP) else 1.25
 
 		self.zoom(zamt, (event.x, event.y))
 
