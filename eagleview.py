@@ -7,6 +7,20 @@ import math
 from cairogtk import CairoGTK, BaseDrawing
 import eagle
 
+pattern_sizes = [
+	(1, 1), (1, 1), (4, 4), (8, 8),
+	(8, 8), (8, 8), (8, 8), (4, 4),
+	(8, 8), (2, 2), (8, 4), (4, 4),
+	(2, 2), (2, 2), (2, 2), (2, 2),
+]
+
+patterns = [
+	[], [(0, 0)], [(x, y) for x in range(4) for y in range(2)], [(i, 7-i) for i in range(8)],
+	[((i+j)%8, (2-i)%8) for i in range(8) for j in range(3)], [((i+j)%8, (5+i)%8) for i in range(8) for j in range(3)], [(i, i) for i in range(8)], [(i, j) for i in range(4) for j in range(4) if not i or not j],
+	[(i, (3-i)%8) for i in range(8)] + [(i, (4+i)%8) for i in range(8)], [(0, 0), (1, 1)], [(0, 2), (4, 0)], [(0, 0), (2, 2)],
+	[(1, 0)], [(0, 0)], [(0, 1)], [(1, 1)],
+]
+
 class EagleDrawing(BaseDrawing):
 	colors = [tuple(int(c, 16)/255. for c in (c[0:2], c[2:4], c[4:6], 'cc')) for c in '000000 23238d 238d23 238d8d 8d2323 8d238d 8d8d23 8d8d8d 272727 0000b4 00b400 00b4b4 b40000 b400b4 b4b400 b4b4b4'.split()]
 	def __init__(self, layers, libraries, module):
@@ -29,6 +43,31 @@ class EagleDrawing(BaseDrawing):
 		layerno = item.layer if not mirrored else self.layers[item.layer].other
 		color = self.colors[self.layers[layerno].color]
 		cr.set_source_rgba(*color)
+
+	def set_pattern_by_layer(self, cr, item, mirrored, **kwargs):
+		layerno = item.layer if not mirrored else self.layers[item.layer].other
+		pattern = self.layers[layerno].fill
+		target = cr.get_target()
+		pat_surf = target.create_similar(cairo.CONTENT_COLOR_ALPHA, *pattern_sizes[pattern])
+		pat_cr = cairo.Context(pat_surf)
+		pat_cr.push_group()
+		self.set_color_by_layer(pat_cr, item, mirrored = mirrored, **kwargs)
+		for x, y in patterns[pattern]:
+			pat_cr.rectangle(x, y, 1, 1)
+		pat_cr.fill()
+		pat = pat_cr.pop_group()
+		pat.set_extend(cairo.EXTEND_REPEAT)
+		cr.set_source(pat)
+
+	def fill_with_pattern_by_layer(self, cr, item, **kwargs):
+		cr.save()
+		cr.identity_matrix()
+		cr.set_line_width(1.5)
+		self.set_color_by_layer(cr, item, **kwargs)
+		cr.stroke_preserve()
+		self.set_pattern_by_layer(cr, item, **kwargs)
+		cr.fill()
+		cr.restore()
 
 	def draw(self, cr):
 		# Draw red cross at origo
@@ -163,9 +202,8 @@ class EagleDrawing(BaseDrawing):
 		cr.stroke()
 
 	def draw_rectangle(self, cr, item, **kwargs):
-		self.set_color_by_layer(cr, item, **kwargs)
 		cr.rectangle(item.x1, item.y1, item.x2-item.x1, item.y2-item.y1)
-		cr.fill()
+		self.fill_with_pattern_by_layer(cr, item, **kwargs)
 
 	def draw_pin(self, cr, item, **kwargs):
 		length = 'Point Short Middle Long'.split().index(item.length)*25400
@@ -192,9 +230,8 @@ class EagleDrawing(BaseDrawing):
 		cr.fill()
 
 	def draw_smd(self, cr, item, **kwargs):
-		self.set_color_by_layer(cr, item, **kwargs)
 		cr.rectangle(item.x-item.width_2, item.y-item.height_2, item.width_2*2, item.height_2*2)
-		cr.fill()
+		self.fill_with_pattern_by_layer(cr, item, **kwargs)
 
 class EagleGTK(CairoGTK):
 	ypol = -1
