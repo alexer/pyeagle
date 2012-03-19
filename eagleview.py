@@ -223,42 +223,50 @@ class EagleDrawing(BaseDrawing):
 			cr.restore()
 
 	def draw_pad(self, cr, item, **kwargs):
+		cr.save()
+		cr.translate(item.x, item.y)
+		cr.rotate(math.radians(360 * item.angle / 4096.))
 		cr.set_source_rgba(*self.colors[2])
 		cr.set_fill_rule(cairo.FILL_RULE_EVEN_ODD)
 		diameter_2 = item.diameter_2 or item.drill_2*1.5
 		if item.shape == 0:
-			cr.rectangle(item.x - diameter_2, item.y - diameter_2, diameter_2*2, diameter_2*2)
+			cr.rectangle(-diameter_2, -diameter_2, diameter_2*2, diameter_2*2)
 		elif item.shape == 1:
-			cr.arc(item.x, item.y, diameter_2, 0, 2*math.pi)
+			cr.arc(0, 0, diameter_2, 0, 2*math.pi)
 		elif item.shape == 2:
 			a_2 = (math.sqrt(2)-1)*diameter_2
-			cr.move_to(item.x-diameter_2, item.y+a_2)
-			cr.line_to(item.x-a_2, item.y+diameter_2)
-			cr.line_to(item.x+a_2, item.y+diameter_2)
-			cr.line_to(item.x+diameter_2, item.y+a_2)
-			cr.line_to(item.x+diameter_2, item.y-a_2)
-			cr.line_to(item.x+a_2, item.y-diameter_2)
-			cr.line_to(item.x-a_2, item.y-diameter_2)
-			cr.line_to(item.x-diameter_2, item.y-a_2)
-			cr.line_to(item.x-diameter_2, item.y+a_2)
+			cr.move_to(-diameter_2, a_2)
+			cr.line_to(-a_2, diameter_2)
+			cr.line_to(a_2, diameter_2)
+			cr.line_to(diameter_2, a_2)
+			cr.line_to(diameter_2, -a_2)
+			cr.line_to(a_2, -diameter_2)
+			cr.line_to(-a_2, -diameter_2)
+			cr.line_to(-diameter_2, -a_2)
+			cr.line_to(-diameter_2, a_2)
 		elif item.shape == 3:
-			cr.move_to(item.x-diameter_2, item.y+diameter_2)
-			cr.line_to(item.x+diameter_2, item.y+diameter_2)
-			cr.arc_negative(item.x+diameter_2, item.y, diameter_2, math.pi/2, 3*math.pi/2)
-			cr.line_to(item.x-diameter_2, item.y-diameter_2)
-			cr.arc_negative(item.x-diameter_2, item.y, diameter_2, 3*math.pi/2, math.pi/2)
+			cr.move_to(-diameter_2, diameter_2)
+			cr.line_to(diameter_2, diameter_2)
+			cr.arc_negative(diameter_2, 0, diameter_2, math.pi/2, 3*math.pi/2)
+			cr.line_to(-diameter_2, -diameter_2)
+			cr.arc_negative(-diameter_2, 0, diameter_2, 3*math.pi/2, math.pi/2)
 		elif item.shape == 4:
-			cr.move_to(item.x, item.y+diameter_2)
-			cr.line_to(item.x+diameter_2*2, item.y+diameter_2)
-			cr.arc_negative(item.x+diameter_2*2, item.y, diameter_2, math.pi/2, 3*math.pi/2)
-			cr.line_to(item.x, item.y-diameter_2)
-			cr.arc_negative(item.x, item.y, diameter_2, 3*math.pi/2, math.pi/2)
-		cr.arc(item.x, item.y, item.drill_2, 0, 2*math.pi)
+			cr.move_to(0, diameter_2)
+			cr.line_to(diameter_2*2, diameter_2)
+			cr.arc_negative(diameter_2*2, 0, diameter_2, math.pi/2, 3*math.pi/2)
+			cr.line_to(0, -diameter_2)
+			cr.arc_negative(0, 0, diameter_2, 3*math.pi/2, math.pi/2)
+		cr.arc(0, 0, item.drill_2, 0, 2*math.pi)
 		cr.fill()
+		cr.restore()
 
 	def draw_smd(self, cr, item, **kwargs):
-		cr.rectangle(item.x-item.width_2, item.y-item.height_2, item.width_2*2, item.height_2*2)
+		cr.save()
+		cr.translate(item.x, item.y)
+		cr.rotate(math.radians(360 * item.angle / 4096.))
+		cr.rectangle(-item.width_2, -item.height_2, item.width_2*2, item.height_2*2)
 		self.fill_with_pattern_by_layer(cr, item, **kwargs)
+		cr.restore()
 
 class EagleGTK(CairoGTK):
 	ypol = -1
