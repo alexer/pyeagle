@@ -225,7 +225,34 @@ class EagleDrawing(BaseDrawing):
 	def draw_pad(self, cr, item, **kwargs):
 		cr.set_source_rgba(*self.colors[2])
 		cr.set_fill_rule(cairo.FILL_RULE_EVEN_ODD)
-		cr.arc(item.x, item.y, item.diameter_2 or item.drill_2*1.5, 0, 2*math.pi)
+		diameter_2 = item.diameter_2 or item.drill_2*1.5
+		if item.shape == 0:
+			cr.rectangle(item.x - diameter_2, item.y - diameter_2, diameter_2*2, diameter_2*2)
+		elif item.shape == 1:
+			cr.arc(item.x, item.y, diameter_2, 0, 2*math.pi)
+		elif item.shape == 2:
+			a_2 = (math.sqrt(2)-1)*diameter_2
+			cr.move_to(item.x-diameter_2, item.y+a_2)
+			cr.line_to(item.x-a_2, item.y+diameter_2)
+			cr.line_to(item.x+a_2, item.y+diameter_2)
+			cr.line_to(item.x+diameter_2, item.y+a_2)
+			cr.line_to(item.x+diameter_2, item.y-a_2)
+			cr.line_to(item.x+a_2, item.y-diameter_2)
+			cr.line_to(item.x-a_2, item.y-diameter_2)
+			cr.line_to(item.x-diameter_2, item.y-a_2)
+			cr.line_to(item.x-diameter_2, item.y+a_2)
+		elif item.shape == 3:
+			cr.move_to(item.x-diameter_2, item.y+diameter_2)
+			cr.line_to(item.x+diameter_2, item.y+diameter_2)
+			cr.arc_negative(item.x+diameter_2, item.y, diameter_2, math.pi/2, 3*math.pi/2)
+			cr.line_to(item.x-diameter_2, item.y-diameter_2)
+			cr.arc_negative(item.x-diameter_2, item.y, diameter_2, 3*math.pi/2, math.pi/2)
+		elif item.shape == 4:
+			cr.move_to(item.x, item.y+diameter_2)
+			cr.line_to(item.x+diameter_2*2, item.y+diameter_2)
+			cr.arc_negative(item.x+diameter_2*2, item.y, diameter_2, math.pi/2, 3*math.pi/2)
+			cr.line_to(item.x, item.y-diameter_2)
+			cr.arc_negative(item.x, item.y, diameter_2, 3*math.pi/2, math.pi/2)
 		cr.arc(item.x, item.y, item.drill_2, 0, 2*math.pi)
 		cr.fill()
 
