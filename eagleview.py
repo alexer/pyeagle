@@ -25,6 +25,11 @@ class EagleDrawing(BaseDrawing):
 			maxy = max(maxy, y)
 		return (minx, miny), (maxx, maxy)
 
+	def set_color_by_layer(self, cr, item, mirrored, **kwargs):
+		layerno = item.layer if not mirrored else self.layers[item.layer].other
+		color = self.colors[self.layers[layerno].color]
+		cr.set_source_rgba(*color)
+
 	def draw(self, cr):
 		# Draw red cross at origo
 		cr.set_source_rgb(1.0, 0.0, 0.0)
@@ -37,70 +42,70 @@ class EagleDrawing(BaseDrawing):
 
 		cr.set_line_cap(cairo.LINE_CAP_ROUND)
 
-		self.draw_item(cr, self.module)
+		self.draw_item(cr, self.module, mirrored = False)
 
-	def draw_item(self, cr, item):
+	def draw_item(self, cr, item, **kwargs):
 		if isinstance(item, eagle.SchemaSheetSection):
-			self.draw_schema(cr, item)
+			self.draw_schema(cr, item, **kwargs)
 		elif isinstance(item, eagle.BoardSection):
-			self.draw_board(cr, item)
+			self.draw_board(cr, item, **kwargs)
 		elif isinstance(item, eagle.SchemaSymbolSection):
-			self.draw_schemasymbol(cr, item)
+			self.draw_schemasymbol(cr, item, **kwargs)
 		elif isinstance(item, eagle.BoardPackageSection):
-			self.draw_boardpackage(cr, item)
+			self.draw_boardpackage(cr, item, **kwargs)
 		elif isinstance(item, eagle.SymbolSection):
-			self.draw_symbol(cr, item)
+			self.draw_symbol(cr, item, **kwargs)
 		elif isinstance(item, eagle.PackageSection):
-			self.draw_package(cr, item)
+			self.draw_package(cr, item, **kwargs)
 		elif isinstance(item, eagle.LineSection):
-			self.draw_line(cr, item)
+			self.draw_line(cr, item, **kwargs)
 		elif isinstance(item, eagle.CircleSection):
-			self.draw_circle(cr, item)
+			self.draw_circle(cr, item, **kwargs)
 		elif isinstance(item, eagle.RectangleSection):
-			self.draw_rectangle(cr, item)
+			self.draw_rectangle(cr, item, **kwargs)
 		elif isinstance(item, eagle.PinSection):
-			self.draw_pin(cr, item)
+			self.draw_pin(cr, item, **kwargs)
 		elif isinstance(item, eagle.PadSection):
-			self.draw_pad(cr, item)
+			self.draw_pad(cr, item, **kwargs)
 		elif isinstance(item, eagle.SmdSection):
-			self.draw_smd(cr, item)
+			self.draw_smd(cr, item, **kwargs)
 		#else:
 		#	raise TypeError, 'Unknown section: ' + item.secname
 
-	def draw_schema(self, cr, sch):
+	def draw_schema(self, cr, sch, **kwargs):
 		for item in sch.subsections[1]:
-			self.draw_item(cr, item)
+			self.draw_item(cr, item, **kwargs)
 		cr.set_source_rgb(0.0, 0.0, 1.0)
 		for bus in sch.subsections[2]:
 			for path in bus.subsections[0]:
 				for item in path.subsections[0]:
-					self.draw_item(cr, item)
+					self.draw_item(cr, item, **kwargs)
 		cr.set_source_rgb(0.0, 1.0, 0.0)
 		for item in sch.subsections[0]:
-			self.draw_item(cr, item)
+			self.draw_item(cr, item, **kwargs)
 		for net in sch.subsections[3]:
 			for path in net.subsections[0]:
 				for item in path.subsections[0]:
-					self.draw_item(cr, item)
+					self.draw_item(cr, item, **kwargs)
 
-	def draw_board(self, cr, brd):
+	def draw_board(self, cr, brd, **kwargs):
 		for item in brd.subsections[2]:
-			self.draw_item(cr, item)
+			self.draw_item(cr, item, **kwargs)
 		for item in brd.subsections[1]:
-			self.draw_item(cr, item)
+			self.draw_item(cr, item, **kwargs)
 		for net in brd.subsections[3]:
 			for item in net.subsections[0]:
-				self.draw_item(cr, item)
+				self.draw_item(cr, item, **kwargs)
 
-	def draw_symbol(self, cr, sym):
+	def draw_symbol(self, cr, sym, **kwargs):
 		for item in sym.subsections[0]:
-			self.draw_item(cr, item)
+			self.draw_item(cr, item, **kwargs)
 
-	def draw_package(self, cr, pac):
+	def draw_package(self, cr, pac, **kwargs):
 		for item in pac.subsections[0]:
-			self.draw_item(cr, item)
+			self.draw_item(cr, item, **kwargs)
 
-	def draw_schemasymbol(self, cr, item1):
+	def draw_schemasymbol(self, cr, item1, **kwargs):
 		item2 = [item for item in item1.subsections[0] if isinstance(item, eagle.SchemaSymbol2Section)][0]
 		cr.save()
 		cr.translate(item2.x, item2.y)
@@ -110,23 +115,24 @@ class EagleDrawing(BaseDrawing):
 		lib = self.libraries[item1.libno-1]
 		syms = lib.subsections[1][0]
 		sym = syms.subsections[0][item1.symno-1]
-		self.draw_symbol(cr, sym)
+		self.draw_symbol(cr, sym, **kwargs)
 		cr.restore()
 
-	def draw_boardpackage(self, cr, item):
+	def draw_boardpackage(self, cr, item, mirrored, **kwargs):
 		cr.save()
 		cr.translate(item.x, item.y)
 		if item.mirrored:
+			mirrored = not mirrored
 			cr.scale(-1, 1)
 		cr.rotate(math.radians(360 * item.angle / 4096.))
 		brd = self.module
 		pacs = brd.subsections[0][item.libno-1]
 		pac = pacs.subsections[0][item.pacno-1]
-		self.draw_symbol(cr, pac)
+		self.draw_symbol(cr, pac, mirrored = mirrored, **kwargs)
 		cr.restore()
 
-	def draw_line(self, cr, item):
-		cr.set_source_rgba(*self.colors[self.layers[item.layer].color])
+	def draw_line(self, cr, item, **kwargs):
+		self.set_color_by_layer(cr, item, **kwargs)
 		if item.linetype == 0x00:
 			cr.set_line_width(item.width_2*2)
 			cr.move_to(item.x1, item.y1)
@@ -150,18 +156,18 @@ class EagleDrawing(BaseDrawing):
 		#else:
 		#	raise ValueError, 'Unknown line type: ' + hex(item.linetype)
 
-	def draw_circle(self, cr, item):
-		cr.set_source_rgba(*self.colors[self.layers[item.layer].color])
+	def draw_circle(self, cr, item, **kwargs):
+		self.set_color_by_layer(cr, item, **kwargs)
 		cr.set_line_width(item.width_2*2)
 		cr.arc(item.x1, item.y1, item.r, 0, 2*math.pi)
 		cr.stroke()
 
-	def draw_rectangle(self, cr, item):
-		cr.set_source_rgba(*self.colors[self.layers[item.layer].color])
+	def draw_rectangle(self, cr, item, **kwargs):
+		self.set_color_by_layer(cr, item, **kwargs)
 		cr.rectangle(item.x1, item.y1, item.x2-item.x1, item.y2-item.y1)
 		cr.fill()
 
-	def draw_pin(self, cr, item):
+	def draw_pin(self, cr, item, **kwargs):
 		length = 'Point Short Middle Long'.split().index(item.length)*25400
 		angle = [0, 90, 180, 270].index(item.angle)
 		point = [(length, 0), (0, length), (-length, 0), (0, -length)][angle]
@@ -178,15 +184,15 @@ class EagleDrawing(BaseDrawing):
 			cr.stroke()
 			cr.restore()
 
-	def draw_pad(self, cr, item):
+	def draw_pad(self, cr, item, **kwargs):
 		cr.set_source_rgba(*self.colors[2])
 		cr.set_fill_rule(cairo.FILL_RULE_EVEN_ODD)
 		cr.arc(item.x, item.y, item.diameter_2 or item.drill_2*1.5, 0, 2*math.pi)
 		cr.arc(item.x, item.y, item.drill_2, 0, 2*math.pi)
 		cr.fill()
 
-	def draw_smd(self, cr, item):
-		cr.set_source_rgba(*self.colors[self.layers[item.layer].color])
+	def draw_smd(self, cr, item, **kwargs):
+		self.set_color_by_layer(cr, item, **kwargs)
 		cr.rectangle(item.x-item.width_2, item.y-item.height_2, item.width_2*2, item.height_2*2)
 		cr.fill()
 
