@@ -98,7 +98,7 @@ class CairoGTK(gtk.DrawingArea):
 		self.draw(event.area.x, event.area.y, event.area.width, event.area.height)
 
 	def redraw(self):
-		self.draw(0, 0, *self.size)
+		self.queue_draw()
 
 	def draw(self, x, y, w, h):
 		cr = self.window.cairo_create()
