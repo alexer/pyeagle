@@ -8,7 +8,9 @@ from cairogtk import CairoGTK, BaseDrawing
 import eagle
 
 class EagleDrawing(BaseDrawing):
-	def __init__(self, libraries, module):
+	colors = [tuple(int(c, 16)/255. for c in (c[0:2], c[2:4], c[4:6], 'cc')) for c in '000000 23238d 238d23 238d8d 8d2323 8d238d 8d8d23 8d8d8d 272727 0000b4 00b400 00b4b4 b40000 b400b4 b4b400 b4b4b4'.split()]
+	def __init__(self, layers, libraries, module):
+		self.layers = layers
 		self.libraries = libraries
 		self.module = module
 
@@ -122,6 +124,7 @@ class EagleDrawing(BaseDrawing):
 		cr.restore()
 
 	def draw_line(self, cr, item):
+		cr.set_source_rgba(*self.colors[self.layers[item.layer].color])
 		if item.linetype == 0x00:
 			cr.set_line_width(item.width_2*2)
 			cr.move_to(item.x1, item.y1)
@@ -129,7 +132,6 @@ class EagleDrawing(BaseDrawing):
 			cr.stroke()
 		elif item.linetype == 0x01:
 			cr.save()
-			cr.set_source_rgb(1.0, 1.0, 0.0)
 			cr.move_to(item.x1, item.y1)
 			cr.line_to(item.x2, item.y2)
 			cr.identity_matrix()
@@ -147,11 +149,13 @@ class EagleDrawing(BaseDrawing):
 		#	raise ValueError, 'Unknown line type: ' + hex(item.linetype)
 
 	def draw_circle(self, cr, item):
+		cr.set_source_rgba(*self.colors[self.layers[item.layer].color])
 		cr.set_line_width(item.width_2*2)
 		cr.arc(item.x1, item.y1, item.r, 0, 2*math.pi)
 		cr.stroke()
 
 	def draw_rectangle(self, cr, item):
+		cr.set_source_rgba(*self.colors[self.layers[item.layer].color])
 		cr.rectangle(item.x1, item.y1, item.x2-item.x1, item.y2-item.y1)
 		cr.fill()
 
@@ -173,6 +177,7 @@ class EagleDrawing(BaseDrawing):
 			cr.restore()
 
 	def draw_pad(self, cr, item):
+		cr.set_source_rgba(*self.colors[2])
 		cr.set_fill_rule(cairo.FILL_RULE_EVEN_ODD)
 		cr.arc(item.x, item.y, item.diameter_2 or item.drill_2*1.5, 0, 2*math.pi)
 		cr.arc(item.x, item.y, item.drill_2, 0, 2*math.pi)
@@ -188,6 +193,7 @@ if __name__ == "__main__":
 
 	with file(library) as f:
 		root = eagle.read_layers(f)
+		layers = dict((subsec.layer, subsec) for subsec in root.subsections[0] if isinstance(subsec, eagle.LayerSection))
 		libs = [subsec for subsec in root.subsections[1] if isinstance(subsec, eagle.LibrarySection)]
 		if itemtype == 'schema':
 			item = [subsec for subsec in root.subsections[1] if isinstance(subsec, eagle.SchemaSection)][0]
@@ -199,7 +205,7 @@ if __name__ == "__main__":
 			items = libs[0].subsections['device symbol package'.split().index(itemtype)][0]
 			item = [item for item in items.subsections[0] if item.name == name][0]
 
-	widget = EagleGTK(EagleDrawing(libs, item))
+	widget = EagleGTK(EagleDrawing(layers, libs, item))
 
 	window = gtk.Window()
 	window.connect("delete-event", gtk.main_quit)
