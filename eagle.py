@@ -768,14 +768,14 @@ class DevicePackageSection(Section):
 	sectype = 0x36
 	secname = 'Device/package'
 	def parse(self):
-		self._get_unknown(2, 1)
-		self._get_zero(3, 1)
+		self.subsecs = self._get_uint16(2)
 		self.pacno = self._get_uint16(4)
 		self.variant = self._get_name(19, 5)
 		self.table = self._get_name(6, 13)
+		self.subsec_counts = [self.subsecs]
 
 	def __str__(self):
-		return '%s %d: variant %s, table %s' % (self.secname, self.pacno, self.variant, self.table)
+		return '%s %d: variant %s, table %s, subsecs %d' % (self.secname, self.pacno, self.variant, self.table, self.subsecs)
 
 class DeviceSection(Section):
 	sectype = 0x37
@@ -828,10 +828,10 @@ class DeviceConnectionsSection(Section):
 	sectype = 0x3c
 	secname = 'Device/connections'
 	def parse(self):
-		fmt = '<' + ('22B' if self.parent.con_byte else '11H')
+		fmt = '<' + ('22B' if self.parent.parent.con_byte else '11H')
 		slots = struct.unpack(fmt, self._get_bytes(2, 22))
 		# connections[padno] = (symno, pinno)
-		self.connections = [(slot >> self.parent.pin_bits, slot & ((1 << self.parent.pin_bits) - 1)) for slot in slots]
+		self.connections = [(slot >> self.parent.parent.pin_bits, slot & ((1 << self.parent.parent.pin_bits) - 1)) for slot in slots]
 
 	def __str__(self):
 		return '%s: %s' % (self.secname, self.connections)
