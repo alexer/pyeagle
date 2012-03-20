@@ -98,7 +98,7 @@ class EagleDrawing(BaseDrawing):
 
 		cr.set_line_cap(cairo.LINE_CAP_ROUND)
 
-		self.draw_grid(cr, self.grid)
+		#self.draw_grid(cr, self.grid)
 		self.draw_item(cr, self.module, mirrored = False)
 
 	def draw_item(self, cr, item, **kwargs):
