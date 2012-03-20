@@ -23,18 +23,27 @@ patterns = [
 
 class EagleDrawing(BaseDrawing):
 	colors = [tuple(int(c, 16)/255. for c in (c[0:2], c[2:4], c[4:6], 'cc')) for c in '000000 23238d 238d23 238d8d 8d2323 8d238d 8d8d23 8d8d8d 272727 0000b4 00b400 00b4b4 b40000 b400b4 b4b400 b4b4b4'.split()]
-	def __init__(self, grid, layers, libraries, module):
+	def __init__(self, drc, grid, layers, libraries, module):
+		self.drc = drc
 		self.grid = grid
 		self.layers = layers
 		self.libraries = libraries
 		self.module = module
 
-		# DRC settings (for calculating pad/via sizes), manual for now
-		self.min_drill = eagle.mm2u(0.6096)
-		self.min_pad = eagle.mm2u(0.254)
-		self.max_pad = eagle.mm2u(0.508)
-		self.min_via = eagle.mm2u(0.2032)
-		self.max_via = eagle.mm2u(0.508)
+		# DRC settings (for calculating pad/via sizes)
+		if drc:
+			self.min_drill = drc.min_drill
+			# XXX: Top and bottom are different settings
+			self.min_pad = drc.restring_mins[0]
+			self.max_pad = drc.restring_maxs[0]
+			self.min_via = drc.restring_mins[3]
+			self.max_via = drc.restring_maxs[3]
+		else:
+			self.min_drill = eagle.mm2u(0.6096)
+			self.min_pad = eagle.mm2u(0.254)
+			self.max_pad = eagle.mm2u(0.508)
+			self.min_via = eagle.mm2u(0.2032)
+			self.max_via = eagle.mm2u(0.508)
 
 	def get_size(self):
 		return ((self.module.minx*254, self.module.miny*254), (self.module.maxx*254, self.module.maxy*254))
@@ -336,7 +345,9 @@ if __name__ == "__main__":
 	library, itemtype, name = sys.argv[1:4]
 
 	with file(library) as f:
-		root = eagle.read_layers(f)
+		eaglefile = eagle.EagleFile(f)
+		root = eaglefile.root
+		drc = None
 		grid = [subsec for subsec in root.subsections[0] if isinstance(subsec, eagle.GridSection)][0]
 		layers = dict((subsec.layer, subsec) for subsec in root.subsections[0] if isinstance(subsec, eagle.LayerSection))
 		libs = [subsec for subsec in root.subsections[1] if isinstance(subsec, eagle.LibrarySection)]
@@ -345,12 +356,13 @@ if __name__ == "__main__":
 			libs = item.subsections[1]
 			item = item.subsections[2][0]
 		elif itemtype == 'board':
+			drc = [rule for rule in eaglefile.rules if isinstance(rule, eagle.DRCRules)][0]
 			item = [subsec for subsec in root.subsections[1] if isinstance(subsec, eagle.BoardSection)][0]
 		else:
 			items = libs[0].subsections['device symbol package'.split().index(itemtype)][0]
 			item = [item for item in items.subsections[0] if item.name == name][0]
 
-	widget = EagleGTK(EagleDrawing(grid, layers, libs, item))
+	widget = EagleGTK(EagleDrawing(drc, grid, layers, libs, item))
 
 	window = gtk.Window()
 	window.connect("delete-event", gtk.main_quit)
