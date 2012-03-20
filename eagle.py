@@ -554,6 +554,15 @@ class LineSection(Section):
 			arctype = (' ' if arctype else '') + arctype
 			return 'Arc%s: %s, %s, width %f", layer %d, style %s, cap %s' % (arctype, coords, center, u2in(self.width_2*2), self.layer, self.style, self.cap)
 
+class ElementSection(Section):
+	sectype = 0x24
+	secname = 'Element'
+	def parse(self):
+		self._get_unknown(2, 22)
+
+	def __str__(self):
+		return self.secname
+
 class CircleSection(Section):
 	sectype = 0x25
 	secname = 'Circle'
@@ -885,6 +894,10 @@ class BoardConnectionSection(Section):
 	def __str__(self):
 		return '%s: package %d, pin %d' % (self.secname, self.pacno, self.pin)
 
+class SmashedPartSection(TextBaseSection):
+	sectype = 0x3f
+	secname = 'Smashed part'
+
 class AttributeSection(TextBaseSection):
 	sectype = 0x41
 	secname = 'Attribute'
@@ -922,10 +935,10 @@ class FrameSection(Section):
 sections = {}
 for section in [StartSection, Unknown11Section, GridSection, LayerSection, SchemaSection, LibrarySection, DevicesSection,
 		SymbolsSection, PackagesSection, SchemaSheetSection, BoardSection, BoardNetSection, SymbolSection, PackageSection, SchemaNetSection,
-		PathSection, PolygonSection, LineSection, CircleSection, RectangleSection, JunctionSection,
+		PathSection, PolygonSection, LineSection, ElementSection, CircleSection, RectangleSection, JunctionSection,
 		HoleSection, ViaSection, PadSection, SmdSection, PinSection, DeviceSymbolSection, BoardPackageSection, BoardPackage2Section,
 		SchemaSymbolSection, TextSection, NetBusLabelSection, SmashedNameSection, SmashedValueSection, DevicePackageSection, DeviceSection,
-		SchemaDeviceSection, SchemaBusSection, DeviceConnectionsSection, SchemaConnectionSection, BoardConnectionSection,
+		SchemaDeviceSection, SchemaBusSection, DeviceConnectionsSection, SchemaConnectionSection, BoardConnectionSection, SmashedPartSection,
 		AttributeSection, AttributeValueSection, FrameSection]:
 	sections[section.sectype] = section
 
