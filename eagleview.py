@@ -234,8 +234,8 @@ class EagleDrawing(BaseDrawing):
 		self.fill_with_pattern_by_layer(cr, item, **kwargs)
 
 	def draw_pin(self, cr, item, **kwargs):
-		length = 'Point Short Middle Long'.split().index(item.length)*25400
-		angle = [0, 90, 180, 270].index(item.angle)
+		length = item.length*25400
+		angle = item.angle / 1024
 		point = [(length, 0), (0, length), (-length, 0), (0, -length)][angle]
 		cr.set_line_width(6*254)
 		cr.move_to(item.x, item.y)
