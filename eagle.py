@@ -948,8 +948,12 @@ class DRCRules:
 		self.name, data = data[:ind], data[ind+1:]
 		ind = data.index('\x00')
 		self.desc, data = data[:ind], data[ind+1:]
-		ind = data.index('\x00')
-		self.stackup, data = data[:ind], data[ind+1:]
+		if struct.unpack('<I', data[:4])[0] != 0x12345678:
+			ind = data.index('\x00')
+			self.stackup, data = data[:ind], data[ind+1:]
+		else:
+			self.stackup = 'xxx'
+		# XXX: Does not handle design rules from older versions
 		assert len(data) == 426
 		magic = struct.unpack('<I', data[:4])[0]
 		assert magic == 0x12345678
