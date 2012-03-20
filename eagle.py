@@ -1035,9 +1035,17 @@ class Indenter:
 	def __repr__(self):
 		return 'Indenter(%r, %r)' % (self.counts, self.section.secname)
 
+class UnknownRule:
+	def __init__(self, data):
+		self.data = data
+
+	def dump(self):
+		print repr(self.data)
+
 sentinels = {
-	'\x25\x04\x00\x20': ('\xef\xcd\xab\x89', NetClass),
-	'\x10\x04\x00\x20': ('\x98\xba\xdc\xfe', DRCRules),
+	'\x25\x04\x00\x20': (['\xef\xcd\xab\x89'], NetClass),
+	'\x10\x04\x00\x20': (['\x98\xba\xdc\xfe'], DRCRules),
+	'\x23\x05\x00\x20': (['\x30\x01\x09\x20', '\x64\x00\x00\x00'], UnknownRule),
 }
 
 class EagleFile:
@@ -1057,13 +1065,14 @@ class EagleFile:
 			if start_sentinel == '\x99\x99\x99\x99':
 				assert f.read(4) == '\x00\x00\x00\x00'
 				break
-			end_sentinel, parser = sentinels[start_sentinel]
+			end_sentinels, parser = sentinels[start_sentinel]
 			length = struct.unpack('<I', f.read(4))[0] - 4
 			data = f.read(length)
 			section = parser(data)
 			self.rules.append(section)
 			section.dump()
-			assert f.read(4) == end_sentinel
+			sentinel = f.read(4)
+			assert sentinel in end_sentinels, 'Wrong end sentinel: ' + repr(sentinel)
 			checksum = f.read(4)
 
 		rest = f.read()
