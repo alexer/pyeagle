@@ -156,9 +156,12 @@ class TextBaseSection(Section):
 		self.mirrored = bool(self._get_uint16_mask(16, 0x1000))
 		self.spin = bool(self._get_uint16_mask(16, 0x4000))
 		self._get_zero16_mask(16, 0xa000)
-		self.text = self._get_name(18, 6)
+		if self.sectype in (0x31, 0x41):
+			self.text = self._get_name(18, 6)
 		assert self.sectype == 0x31 or self.angle & 0x3ff == 0x000, 'Shouldn\'t angle be one of 0, 90, 180 or 270 for this section?'
-		assert self.sectype in (0x31, 0x41) or self.data[18:24] == '\x00'*6, 'This section shouldn\'t contain any text?'
+		# Mostly true, but 0x01 has been spotted once
+		#assert self.sectype in (0x31, 0x41) or self.data[18:24] == '\x00'*6, 'This section shouldn\'t contain any text?'
+		assert self.sectype in (0x31, 0x41) or self.data[18] != '\x7f', 'This section shouldn\'t contain any text?'
 
 	def __str__(self):
 		font = 'vector proportional fixed'.split()[self.font]
@@ -232,7 +235,8 @@ class LayerSection(Section):
 		self._get_unknown(7, 1)
 		self._get_zero(8, 7)
 		self.name = self._get_name(15, 9)
-		assert visible in (0x00, 0x0c), 'I thought visibility always set two bits?'
+		# This is usually true, but on schemas some layers not used on schemas may have 0x04 here
+		#assert visible in (0x00, 0x0c), 'I thought visibility always set two bits?'
 		self.visible = bool(visible)
 		# The ulp "visible" flag is basically "visible and not hidden", or "flags & 0x0e == 0x0e"
 		self.ulpvisible = self.visible and self.available
@@ -452,7 +456,7 @@ class PolygonSection(Section):
 		self.layer = self._get_uint8(18)
 		self.pour = 'hatch' if self._get_uint8_mask(19, 0x01) else 'solid'
 		self.rank = self._get_uint8_mask(19, 0x0e) >> 1
-		assert 1 <= self.rank <= 7, 'Unknown rank: %d' % (self.rank, ) # 7 for schema polygons
+		assert 0 <= self.rank <= 7, 'Unknown rank: %d' % (self.rank, ) # 7 for schema polygons, 0 seen in package
 		self.thermals = bool(self._get_uint8_mask(19, 0x80))
 		self.orphans = bool(self._get_uint8_mask(19, 0x40))
 		self._get_zero_mask(19, 0x30)
