@@ -104,6 +104,8 @@ class EagleDrawing(BaseDrawing):
 			self.draw_rectangle(cr, item, **kwargs)
 		elif isinstance(item, eagle.PinSection):
 			self.draw_pin(cr, item, **kwargs)
+		elif isinstance(item, eagle.ViaSection):
+			self.draw_via(cr, item, **kwargs)
 		elif isinstance(item, eagle.PadSection):
 			self.draw_pad(cr, item, **kwargs)
 		elif isinstance(item, eagle.SmdSection):
@@ -221,6 +223,31 @@ class EagleDrawing(BaseDrawing):
 			cr.set_line_width(1)
 			cr.stroke()
 			cr.restore()
+
+	def draw_via(self, cr, item, **kwargs):
+		cr.save()
+		cr.translate(item.x, item.y)
+		cr.set_source_rgba(*self.colors[2])
+		cr.set_fill_rule(cairo.FILL_RULE_EVEN_ODD)
+		diameter_2 = item.diameter_2 or item.drill_2*1.5
+		if item.shape == 0:
+			cr.rectangle(-diameter_2, -diameter_2, diameter_2*2, diameter_2*2)
+		elif item.shape == 1:
+			cr.arc(0, 0, diameter_2, 0, 2*math.pi)
+		elif item.shape == 2:
+			a_2 = (math.sqrt(2)-1)*diameter_2
+			cr.move_to(-diameter_2, a_2)
+			cr.line_to(-a_2, diameter_2)
+			cr.line_to(a_2, diameter_2)
+			cr.line_to(diameter_2, a_2)
+			cr.line_to(diameter_2, -a_2)
+			cr.line_to(a_2, -diameter_2)
+			cr.line_to(-a_2, -diameter_2)
+			cr.line_to(-diameter_2, -a_2)
+			cr.line_to(-diameter_2, a_2)
+		cr.arc(0, 0, item.drill_2, 0, 2*math.pi)
+		cr.fill()
+		cr.restore()
 
 	def draw_pad(self, cr, item, **kwargs):
 		cr.save()
