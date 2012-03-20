@@ -942,6 +942,11 @@ for section in [StartSection, Unknown11Section, GridSection, LayerSection, Schem
 		AttributeSection, AttributeValueSection, FrameSection]:
 	sections[section.sectype] = section
 
+def _cut(fmt, data, size, onlyone = False):
+	if not onlyone:
+		return struct.unpack(fmt, data[:size]), data[size:]
+	return struct.unpack(fmt, data[:size])[0], data[size:]
+
 class DRCRules:
 	def __init__(self, data):
 		ind = data.index('\x00')
@@ -955,40 +960,42 @@ class DRCRules:
 			self.stackup = 'xxx'
 		# XXX: Does not handle design rules from older versions
 		assert len(data) == 426
-		magic = struct.unpack('<I', data[:4])[0]
+		magic, data = _cut('<I', data, 4, True)
 		assert magic == 0x12345678
 		# wire2wire wire2pad wire2via pad2pad pad2via via2via pad2smd via2smd smd2smd
-		self.clearances = struct.unpack('<9I', data[4:40])
-		assert struct.unpack('<2I', data[40:48]) == (2032, 2)
-		self.copper2dimension, zero, self.drill2hole = struct.unpack('<3I', data[48:60])
+		self.clearances, data = _cut('<9I', data, 36)
+		const, data = _cut('<2I', data, 8)
+		assert const == (2032, 2)
+		(self.copper2dimension, zero, self.drill2hole), data = _cut('<3I', data, 12)
 		assert zero == 0
-		assert struct.unpack('<2I', data[60:68]) == (0, 0)
-		self.min_width, self.min_drill, self.min_micro_via, self.blind_via_ratio = struct.unpack('<3Id', data[68:88])
+		const, data = _cut('<2I', data, 8)
+		assert const == (0, 0)
+		(self.min_width, self.min_drill, self.min_micro_via, self.blind_via_ratio), data = _cut('<3Id', data, 20)
 		# restring order: padtop padinner padbottom viaouter viainner microviaouter microviainner
-		self.restring_percentages = struct.unpack('<7d', data[88:144])
-		restring_limits = struct.unpack('<14I', data[144:200])
+		self.restring_percentages, data = _cut('<7d', data, 56)
+		restring_limits, data = _cut('<14I', data, 56)
 		self.restring_mins = restring_limits[0::2]
 		self.restring_maxs = restring_limits[1::2]
 		# top bottom first, -1=As in library, 0=square, 1=round, 2=octagon
-		self.pad_shapes = struct.unpack('<3i', data[200:212])
+		self.pad_shapes, data = _cut('<3i', data, 12)
 		# mask order: stop cream
-		self.mask_percentages = struct.unpack('<2d', data[212:228])
-		mask_limits = struct.unpack('<5I', data[228:248])
+		self.mask_percentages, data = _cut('<2d', data, 16)
+		mask_limits, data = _cut('<5I', data, 20)
 		self.mask_mins = mask_limits[0:4:2]
 		self.mask_maxs = mask_limits[1:4:2]
 		self.mask_limit = mask_limits[4]
 		# XXX: Too lazy to do other shape data
 		# percentage min max
-		self.smd_roundness = struct.unpack('<dII', data[248:264])
-		self.supply_gap = struct.unpack('<dII', data[264:280])
-		self.supply_annulus, self.supply_thermal = struct.unpack('<II', data[280:288])
-		self.restring_annulus, self.restring_thermal, self.via_thermals = struct.unpack('<3B', data[288:291])
-		self.check_grid, self.check_angle, xxx, self.check_font, self.check_restrict = struct.unpack('<BBIBB', data[291:299])
+		self.smd_roundness, data = _cut('<dII', data, 16)
+		self.supply_gap, data = _cut('<dII', data, 16)
+		(self.supply_annulus, self.supply_thermal), data = _cut('<II', data, 8)
+		(self.restring_annulus, self.restring_thermal, self.via_thermals), data = _cut('<3B', data, 3)
+		(self.check_grid, self.check_angle, xxx, self.check_font, self.check_restrict), data = _cut('<BBIBB', data, 8)
 		assert xxx == 50
-		xxx, self.long_elongation, self.offset_elongation = struct.unpack('<3B', data[299:302])
+		(xxx, self.long_elongation, self.offset_elongation), data = _cut('<3B', data, 3)
 		assert xxx == 13
-		self.layer_coppers = struct.unpack('<16I', data[302:366])
-		self.layer_isolations = struct.unpack('<15I', data[366:426])
+		self.layer_coppers, data = _cut('<16I', data, 64)
+		self.layer_isolations, data = _cut('<15I', data, 60)
 
 	def dump(self):
 		print (self.name, self.desc, self.stackup)
