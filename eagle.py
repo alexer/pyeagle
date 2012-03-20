@@ -600,7 +600,7 @@ class ViaSection(Section):
 		self.x = self._get_int32(4)
 		self.y = self._get_int32(8)
 		self.drill_2 = self._get_uint16(12)
-		self.width_2 = self._get_uint16(14)
+		self.diameter_2 = self._get_uint16(14)
 		self.layers = self._get_uint8_mask(16, 0x0f) + 1, (self._get_uint8_mask(16, 0xf0) >> 4) + 1
 		self.stop = self._get_uint8_mask(17, 0x01)
 		self._get_zero_mask(17, 0xfe)
@@ -608,7 +608,7 @@ class ViaSection(Section):
 
 	def __str__(self):
 		shape = 'square round octagon'.split()[self.shape]
-		return '%s: at (%f", %f"), width %f", drill %f", shape %s, layers %d-%d, stop %d' % (self.secname, u2in(self.x), u2in(self.y), u2in(self.width_2*2), u2in(self.drill_2*2), shape, self.layers[0], self.layers[1], self.stop)
+		return '%s: at (%f", %f"), diameter %f", drill %f", shape %s, layers %d-%d, stop %d' % (self.secname, u2in(self.x), u2in(self.y), u2in(self.diameter_2*2), u2in(self.drill_2*2), shape, self.layers[0], self.layers[1], self.stop)
 
 class PadSection(Section):
 	sectype = 0x2a
