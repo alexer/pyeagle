@@ -23,7 +23,8 @@ patterns = [
 
 class EagleDrawing(BaseDrawing):
 	colors = [tuple(int(c, 16)/255. for c in (c[0:2], c[2:4], c[4:6], 'cc')) for c in '000000 23238d 238d23 238d8d 8d2323 8d238d 8d8d23 8d8d8d 272727 0000b4 00b400 00b4b4 b40000 b400b4 b4b400 b4b4b4'.split()]
-	def __init__(self, layers, libraries, module):
+	def __init__(self, grid, layers, libraries, module):
+		self.grid = grid
 		self.layers = layers
 		self.libraries = libraries
 		self.module = module
@@ -81,6 +82,7 @@ class EagleDrawing(BaseDrawing):
 
 		cr.set_line_cap(cairo.LINE_CAP_ROUND)
 
+		self.draw_grid(cr, self.grid)
 		self.draw_item(cr, self.module, mirrored = False)
 
 	def draw_item(self, cr, item, **kwargs):
@@ -112,6 +114,23 @@ class EagleDrawing(BaseDrawing):
 			self.draw_smd(cr, item, **kwargs)
 		#else:
 		#	raise TypeError, 'Unknown section: ' + item.secname
+
+	def draw_grid(self, cr, grid):
+		factor = [10, 10000, 254, 254000][grid.unit&0x03]*grid.size*grid.multiple
+		miny, maxy = -100, 100
+		minx, maxx = -100, 100
+		for x in range(minx, maxx):
+			cr.move_to(x*factor, miny*factor)
+			cr.line_to(x*factor, maxy*factor)
+		for y in range(miny, maxy):
+			cr.move_to(minx*factor, y*factor)
+			cr.line_to(maxx*factor, y*factor)
+		cr.save()
+		cr.identity_matrix()
+		cr.set_line_width(0.5)
+		cr.set_source_rgba(*self.colors[7])
+		cr.stroke()
+		cr.restore()
 
 	def draw_schema(self, cr, sch, **kwargs):
 		for item in sch.subsections[1]:
@@ -305,6 +324,7 @@ if __name__ == "__main__":
 
 	with file(library) as f:
 		root = eagle.read_layers(f)
+		grid = [subsec for subsec in root.subsections[0] if isinstance(subsec, eagle.GridSection)][0]
 		layers = dict((subsec.layer, subsec) for subsec in root.subsections[0] if isinstance(subsec, eagle.LayerSection))
 		libs = [subsec for subsec in root.subsections[1] if isinstance(subsec, eagle.LibrarySection)]
 		if itemtype == 'schema':
@@ -317,7 +337,7 @@ if __name__ == "__main__":
 			items = libs[0].subsections['device symbol package'.split().index(itemtype)][0]
 			item = [item for item in items.subsections[0] if item.name == name][0]
 
-	widget = EagleGTK(EagleDrawing(layers, libs, item))
+	widget = EagleGTK(EagleDrawing(grid, layers, libs, item))
 
 	window = gtk.Window()
 	window.connect("delete-event", gtk.main_quit)
