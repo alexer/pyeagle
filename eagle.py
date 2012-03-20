@@ -727,15 +727,17 @@ class BoardPackage2Section(Section):
 	def __str__(self):
 		return '%s: name %s, value %s' % (self.secname, self.name, self.value)
 
-class SchemaSymbol2Section(Section):
+class SchemaSymbolSection(Section):
 	sectype = 0x30
 	secname = 'Schema/symbol'
 	def parse(self):
 		self.subsecs = self._get_uint16(2)
 		self.x = self._get_int32(4)
 		self.y = self._get_int32(8)
-		self._get_unknown(12, 3)
-		self._get_zero(15, 1)
+		placed = self._get_int16(12)
+		assert placed in (0, -1), 'What\'s this?'
+		self.placed = placed == -1
+		self.symno = self._get_uint16(14)
 		self.angle = self._get_uint16_mask(16, 0x0c00)
 		self.mirrored = bool(self._get_uint16_mask(16, 0x1000))
 		self._get_zero16_mask(16, 0xe3ff)
@@ -746,7 +748,7 @@ class SchemaSymbol2Section(Section):
 		self.subsec_counts = [self.subsecs]
 
 	def __str__(self):
-		return '%s: at (%f", %f"), angle %f, mirror %d, smashed %d' % (self.secname, u2in(self.x), u2in(self.y), 360 * self.angle / 4096., self.mirrored, self.smashed)
+		return '%s %d: at (%f", %f"), angle %f, mirror %d, smashed %d, placed %d' % (self.secname, self.symno, u2in(self.x), u2in(self.y), 360 * self.angle / 4096., self.mirrored, self.smashed, self.placed)
 
 class TextSection(TextBaseSection):
 	sectype = 0x31
@@ -797,13 +799,13 @@ class DeviceSection(Section):
 	def __str__(self):
 		return '%s %s: prefix %s, desc %s, con_byte %d, pin_bits %d, value_on %d, pacsubsecs %d, symsubsecs %d' % (self.secname, self.name, self.prefix, self.desc, self.con_byte, self.pin_bits, self.value_on, self.pacsubsecs, self.symsubsecs)
 
-class SchemaSymbolSection(Section):
+class SchemaDeviceSection(Section):
 	sectype = 0x38
-	secname = 'Schema/symbol'
+	secname = 'Schema/device'
 	def parse(self):
 		self.subsecs = self._get_uint16(2)
 		self.libno = self._get_uint16(4)
-		self.symno = self._get_uint16(6)
+		self.devno = self._get_uint16(6)
 		self._get_unknown(8, 2)
 		self._get_zero(10, 1)
 		self.value = self._get_name(16, 8)
@@ -811,7 +813,7 @@ class SchemaSymbolSection(Section):
 		self.subsec_counts = [self.subsecs]
 
 	def __str__(self):
-		return '%s %d@%d, name %s, value %s, subsecs %d' % (self.secname, self.symno, self.libno, self.name, self.value, self.subsecs)
+		return '%s %d@%d, name %s, value %s, subsecs %d' % (self.secname, self.devno, self.libno, self.name, self.value, self.subsecs)
 
 class SchemaBusSection(Section):
 	sectype = 0x3a
@@ -841,14 +843,13 @@ class SchemaConnectionSection(Section):
 	secname = 'Schema/connection'
 	def parse(self):
 		self._get_zero(2, 2)
-		self.symno = self._get_uint16(4)
-		self._get_unknown(6, 1)
-		self._get_zero(7, 1)
+		self.devno = self._get_uint16(4)
+		self.symno = self._get_uint16(6)
 		self.pin = self._get_uint16(8)
 		self._get_zero(10, 14)
 
 	def __str__(self):
-		return '%s: symbol %d, pin %d' % (self.secname, self.symno, self.pin)
+		return '%s: device %d, symbol %d, pin %d' % (self.secname, self.devno, self.symno, self.pin)
 
 class BoardConnectionSection(Section):
 	sectype = 0x3e
@@ -901,8 +902,8 @@ for section in [StartSection, Unknown11Section, GridSection, LayerSection, Schem
 		SymbolsSection, PackagesSection, SchemaSheetSection, BoardSection, BoardNetSection, SymbolSection, PackageSection, SchemaNetSection,
 		PathSection, PolygonSection, LineSection, CircleSection, RectangleSection, JunctionSection,
 		HoleSection, ViaSection, PadSection, SmdSection, PinSection, DeviceSymbolSection, BoardPackageSection, BoardPackage2Section,
-		SchemaSymbol2Section, TextSection, NetBusLabelSection, SmashedNameSection, SmashedValueSection, DevicePackageSection, DeviceSection,
-		SchemaSymbolSection, SchemaBusSection, DeviceConnectionsSection, SchemaConnectionSection, BoardConnectionSection,
+		SchemaSymbolSection, TextSection, NetBusLabelSection, SmashedNameSection, SmashedValueSection, DevicePackageSection, DeviceSection,
+		SchemaDeviceSection, SchemaBusSection, DeviceConnectionsSection, SchemaConnectionSection, BoardConnectionSection,
 		AttributeSection, AttributeValueSection, FrameSection]:
 	sections[section.sectype] = section
 

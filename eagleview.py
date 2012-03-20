@@ -97,8 +97,8 @@ class EagleDrawing(BaseDrawing):
 			self.draw_schema(cr, item, **kwargs)
 		elif isinstance(item, eagle.BoardSection):
 			self.draw_board(cr, item, **kwargs)
-		elif isinstance(item, eagle.SchemaSymbolSection):
-			self.draw_schemasymbol(cr, item, **kwargs)
+		elif isinstance(item, eagle.SchemaDeviceSection):
+			self.draw_schemadevice(cr, item, **kwargs)
 		elif isinstance(item, eagle.BoardPackageSection):
 			self.draw_boardpackage(cr, item, **kwargs)
 		elif isinstance(item, eagle.SymbolSection):
@@ -172,18 +172,24 @@ class EagleDrawing(BaseDrawing):
 		for item in pac.subsections[0]:
 			self.draw_item(cr, item, **kwargs)
 
-	def draw_schemasymbol(self, cr, item1, **kwargs):
-		item2 = [item for item in item1.subsections[0] if isinstance(item, eagle.SchemaSymbol2Section)][0]
-		cr.save()
-		cr.translate(item2.x, item2.y)
-		if item2.mirrored:
-			cr.scale(-1, 1)
-		cr.rotate(math.radians(item2.angle))
-		lib = self.libraries[item1.libno-1]
-		syms = lib.subsections[1][0]
-		sym = syms.subsections[0][item1.symno-1]
-		self.draw_symbol(cr, sym, **kwargs)
-		cr.restore()
+	def draw_schemadevice(self, cr, schdev, **kwargs):
+		schsyms = [item for item in schdev.subsections[0] if isinstance(item, eagle.SchemaSymbolSection)]
+		for schsym in schsyms:
+			if not schsym.placed:
+				continue
+			cr.save()
+			cr.translate(schsym.x, schsym.y)
+			if schsym.mirrored:
+				cr.scale(-1, 1)
+			cr.rotate(math.radians(360 * schsym.angle / 4096.))
+			lib = self.libraries[schdev.libno-1]
+			devs = lib.subsections[0][0]
+			syms = lib.subsections[1][0]
+			dev = devs.subsections[0][schdev.devno-1]
+			devsym = dev.subsections[1][schsym.symno-1]
+			sym = syms.subsections[0][devsym.symno-1]
+			self.draw_symbol(cr, sym, **kwargs)
+			cr.restore()
 
 	def draw_boardpackage(self, cr, item, mirrored, **kwargs):
 		cr.save()
