@@ -907,6 +907,79 @@ for section in [StartSection, Unknown11Section, GridSection, LayerSection, Schem
 		AttributeSection, AttributeValueSection, FrameSection]:
 	sections[section.sectype] = section
 
+class DRCRules:
+	def __init__(self, data):
+		ind = data.index('\x00')
+		self.name, data = data[:ind], data[ind+1:]
+		ind = data.index('\x00')
+		self.desc, data = data[:ind], data[ind+1:]
+		ind = data.index('\x00')
+		self.stackup, data = data[:ind], data[ind+1:]
+		assert len(data) == 426
+		magic = struct.unpack('<I', data[:4])[0]
+		assert magic == 0x12345678
+		# wire2wire wire2pad wire2via pad2pad pad2via via2via pad2smd via2smd smd2smd
+		self.clearances = struct.unpack('<9I', data[4:40])
+		assert struct.unpack('<2I', data[40:48]) == (2032, 2)
+		self.copper2dimension, zero, self.drill2hole = struct.unpack('<3I', data[48:60])
+		assert zero == 0
+		assert struct.unpack('<2I', data[60:68]) == (0, 0)
+		self.min_width, self.min_drill, self.min_micro_via, self.blind_via_ratio = struct.unpack('<3Id', data[68:88])
+		# restring order: padtop padinner padbottom viaouter viainner microviaouter microviainner
+		self.restring_percentages = struct.unpack('<7d', data[88:144])
+		restring_limits = struct.unpack('<14I', data[144:200])
+		self.restring_mins = restring_limits[0::2]
+		self.restring_maxs = restring_limits[1::2]
+		# top bottom first, -1=As in library, 0=square, 1=round, 2=octagon
+		self.pad_shapes = struct.unpack('<3i', data[200:212])
+		# mask order: stop cream
+		self.mask_percentages = struct.unpack('<2d', data[212:228])
+		mask_limits = struct.unpack('<5I', data[228:248])
+		self.mask_mins = mask_limits[0:4:2]
+		self.mask_maxs = mask_limits[1:4:2]
+		self.mask_limit = mask_limits[4]
+		# XXX: Too lazy to do other shape data
+		# percentage min max
+		self.smd_roundness = struct.unpack('<dII', data[248:264])
+		self.supply_gap = struct.unpack('<dII', data[264:280])
+		self.supply_annulus, self.supply_thermal = struct.unpack('<II', data[280:288])
+		self.restring_annulus, self.restring_thermal, self.via_thermals = struct.unpack('<3B', data[288:291])
+		self.check_grid, self.check_angle, xxx, self.check_font, self.check_restrict = struct.unpack('<BBIBB', data[291:299])
+		assert xxx == 50
+		xxx, self.long_elongation, self.offset_elongation = struct.unpack('<3B', data[299:302])
+		assert xxx == 13
+		self.layer_coppers = struct.unpack('<16I', data[302:366])
+		self.layer_isolations = struct.unpack('<15I', data[366:426])
+
+	def dump(self):
+		print (self.name, self.desc, self.stackup)
+		print 'Clearances:', self.clearances
+		print 'Copper/dimension / drill/hole:', self.copper2dimension, self.drill2hole
+		print 'Minimum width/drill/micro via/blind via ratio:', self.min_width, self.min_drill, self.min_micro_via, self.blind_via_ratio
+		print 'Restring perc/min/max:', self.restring_percentages, self.restring_mins, self.restring_maxs
+		print 'Pad shapes top/bottom/first:', self.pad_shapes
+		print 'Mask perc/min/max / limit:', self.mask_percentages, self.mask_mins, self.mask_maxs, self.mask_limit
+		print 'SMD roundness:', self.smd_roundness
+		print 'Supply gap:', self.supply_gap
+		print 'Supply thermal/annulus:', self.supply_thermal, self.supply_annulus
+		print 'Supply restring annulus/thermal / via thermals:', self.restring_annulus, self.restring_thermal, self.via_thermals
+		print 'Check grid/angle/font/restrict:', self.check_grid, self.check_angle, self.check_font, self.check_restrict
+		print 'Elongation for long/offset pad:', self.long_elongation, self.offset_elongation
+		print 'Layer coppers/isolations:', self.layer_coppers, self.layer_isolations
+
+class NetClass:
+	def __init__(self, data):
+		ind = data.index('\x00')
+		self.name, data = data[:ind], data[ind+1:]
+		assert len(data) == 48
+		self.netclassno, magic, self.width, self.drill = struct.unpack('<IIII', data[0:16])
+		self.clearances = struct.unpack('<8I', data[16:48])
+		assert magic == 0x87654321
+		assert self.clearances[self.netclassno+1:] == (7-self.netclassno)*(0,), 'I thought clearances outside the triangle were supposed to always be zero?'
+
+	def dump(self):
+		print 'Netclass %d, %s: width %f", drill %f", clearance %f", others %r' % (self.netclassno, self.name, u2in(self.width), u2in(self.drill), u2in(self.clearances[self.netclassno]), self.clearances[:self.netclassno])
+
 class Indenter:
 	def __init__(self, section):
 		self.section = section
@@ -1032,78 +1105,9 @@ def read_name_array(f):
 		print i, repr(value)
 	checksum = f.read(4)
 
-def parse_drc(data):
-	ind = data.index('\x00')
-	name, data = data[:ind], data[ind+1:]
-	ind = data.index('\x00')
-	desc, data = data[:ind], data[ind+1:]
-	ind = data.index('\x00')
-	stackup, data = data[:ind], data[ind+1:]
-	assert len(data) == 426
-	magic = struct.unpack('<I', data[:4])[0]
-	assert magic == 0x12345678
-	# wire2wire wire2pad wire2via pad2pad pad2via via2via pad2smd via2smd smd2smd
-	clearances = struct.unpack('<9I', data[4:40])
-	assert struct.unpack('<2I', data[40:48]) == (2032, 2)
-	copper2dimension, zero, drill2hole = struct.unpack('<3I', data[48:60])
-	assert zero == 0
-	assert struct.unpack('<2I', data[60:68]) == (0, 0)
-	min_width, min_drill, min_micro_via, blind_via_ratio = struct.unpack('<3Id', data[68:88])
-	# restring order: padtop padinner padbottom viaouter viainner microviaouter microviainner
-	restring_percentages = struct.unpack('<7d', data[88:144])
-	restring_limits = struct.unpack('<14I', data[144:200])
-	restring_mins = restring_limits[0::2]
-	restring_maxs = restring_limits[1::2]
-	# top bottom first, -1=As in library, 0=square, 1=round, 2=octagon
-	pad_shapes = struct.unpack('<3i', data[200:212])
-	# mask order: stop cream
-	mask_percentages = struct.unpack('<2d', data[212:228])
-	mask_limits = struct.unpack('<5I', data[228:248])
-	mask_mins = mask_limits[0:4:2]
-	mask_maxs = mask_limits[1:4:2]
-	mask_limit = mask_limits[4]
-	# XXX: Too lazy to do other shape data
-	# percentage min max
-	smd_roundness = struct.unpack('<dII', data[248:264])
-	supply_gap = struct.unpack('<dII', data[264:280])
-	supply_annulus, supply_thermal = struct.unpack('<II', data[280:288])
-	restring_annulus, restring_thermal, via_thermals = struct.unpack('<3B', data[288:291])
-	check_grid, check_angle, xxx, check_font, check_restrict = struct.unpack('<BBIBB', data[291:299])
-	assert xxx == 50
-	xxx, long_elongation, offset_elongation = struct.unpack('<3B', data[299:302])
-	assert xxx == 13
-	layer_coppers = struct.unpack('<16I', data[302:366])
-	layer_isolations = struct.unpack('<15I', data[366:426])
-	print (name, desc, stackup)
-	print 'Clearances:', clearances
-	print 'Copper/dimension / drill/hole:', copper2dimension, drill2hole
-	print 'Minimum width/drill/micro via/blind via ratio:', min_width, min_drill, min_micro_via, blind_via_ratio
-	print 'Restring perc/min/max:', restring_percentages, restring_mins, restring_maxs
-	print 'Pad shapes top/bottom/first:', pad_shapes
-	print 'Mask perc/min/max / limit:', mask_percentages, mask_mins, mask_maxs, mask_limit
-	print 'SMD roundness:', smd_roundness
-	print 'Supply gap:', supply_gap
-	print 'Supply thermal/annulus:', supply_thermal, supply_annulus
-	print 'Supply restring annulus/thermal / via thermals:', restring_annulus, restring_thermal, via_thermals
-	print 'Check grid/angle/font/restrict:', check_grid, check_angle, check_font, check_restrict
-	print 'Elongation for long/offset pad:', long_elongation, offset_elongation
-	print 'Layer coppers/isolations:', layer_coppers, layer_isolations
-	return (data, )
-
-def parse_netclass(data):
-	ind = data.index('\x00')
-	name, data = data[:ind], data[ind+1:]
-	assert len(data) == 48
-	netclassno, magic, width, drill = struct.unpack('<IIII', data[0:16])
-	clearances = struct.unpack('<8I', data[16:48])
-	assert magic == 0x87654321
-	assert clearances[netclassno+1:] == (7-netclassno)*(0,), 'I thought clearances outside the triangle were supposed to always be zero?'
-	print 'Netclass %d, %s: width %f", drill %f", clearance %f", others %r' % (netclassno, name, u2in(width), u2in(drill), u2in(clearances[netclassno]), clearances[:netclassno])
-	return (netclassno, name, width, drill, clearances)
-
 sentinels = {
-	'\x25\x04\x00\x20': ('\xef\xcd\xab\x89', parse_netclass),
-	'\x10\x04\x00\x20': ('\x98\xba\xdc\xfe', parse_drc),
+	'\x25\x04\x00\x20': ('\xef\xcd\xab\x89', NetClass),
+	'\x10\x04\x00\x20': ('\x98\xba\xdc\xfe', DRCRules),
 }
 
 if __name__ == '__main__':
@@ -1126,6 +1130,7 @@ if __name__ == '__main__':
 			length = struct.unpack('<I', f.read(4))[0] - 4
 			data = f.read(length)
 			section = parser(data)
+			section.dump()
 			assert f.read(4) == end_sentinel
 			checksum = f.read(4)
 
