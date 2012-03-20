@@ -29,6 +29,13 @@ class EagleDrawing(BaseDrawing):
 		self.libraries = libraries
 		self.module = module
 
+		# DRC settings (for calculating pad/via sizes), manual for now
+		self.min_drill = eagle.mm2u(0.6096)
+		self.min_pad = eagle.mm2u(0.254)
+		self.max_pad = eagle.mm2u(0.508)
+		self.min_via = eagle.mm2u(0.2032)
+		self.max_via = eagle.mm2u(0.508)
+
 	def get_size(self):
 		return ((self.module.minx*254, self.module.miny*254), (self.module.maxx*254, self.module.maxy*254))
 		points = self.points()
@@ -248,7 +255,7 @@ class EagleDrawing(BaseDrawing):
 		cr.translate(item.x, item.y)
 		cr.set_source_rgba(*self.colors[2])
 		cr.set_fill_rule(cairo.FILL_RULE_EVEN_ODD)
-		diameter_2 = item.diameter_2 or item.drill_2*1.5
+		diameter_2 = item.diameter_2 or item.drill_2 + max(item.drill_2*2*0.25, self.min_via)
 		if item.shape == 0:
 			cr.rectangle(-diameter_2, -diameter_2, diameter_2*2, diameter_2*2)
 		elif item.shape == 1:
@@ -274,7 +281,7 @@ class EagleDrawing(BaseDrawing):
 		cr.rotate(math.radians(360 * item.angle / 4096.))
 		cr.set_source_rgba(*self.colors[2])
 		cr.set_fill_rule(cairo.FILL_RULE_EVEN_ODD)
-		diameter_2 = item.diameter_2 or item.drill_2*1.5
+		diameter_2 = item.diameter_2 or item.drill_2 + max(item.drill_2*2*0.25, self.min_pad)
 		if item.shape == 0:
 			cr.rectangle(-diameter_2, -diameter_2, diameter_2*2, diameter_2*2)
 		elif item.shape == 1:

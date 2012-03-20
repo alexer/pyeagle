@@ -17,6 +17,9 @@ def dump_dec_hex_ascii(data):
 u2mm = lambda val: val/10/1000
 u2in = lambda val: val/2.54/100/1000
 
+mm2u = lambda val: val*10*1000
+in2u = lambda val: val*254*1000
+
 class Section:
 	sectype = None
 	secname = None
