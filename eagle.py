@@ -828,8 +828,8 @@ class SchemaDeviceSection(Section):
 		self.subsecs = self._get_uint16(2)
 		self.libno = self._get_uint16(4)
 		self.devno = self._get_uint16(6)
-		self._get_unknown(8, 2)
-		self._get_zero(10, 1)
+		self.pacno = self._get_uint8(8)
+		self._get_unknown(9, 2)
 		self.value = self._get_name(16, 8)
 		self.name = self._get_name(11, 5)
 		self.subsec_counts = [self.subsecs]
