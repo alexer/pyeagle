@@ -792,10 +792,10 @@ class DeviceSection(Section):
 		self.name = self._get_name(18, 6)
 		self.desc = self._get_name(13, 5)
 		self.prefix = self._get_name(8, 5)
-		self.subsec_counts = [self.symsubsecs, self.pacsubsecs]
+		self.subsec_counts = [self.pacsubsecs, self.symsubsecs]
 
 	def __str__(self):
-		return '%s %s: prefix %s, desc %s, con_byte %d, pin_bits %d, value_on %d, symsubsecs %d, pacsubsecs %d' % (self.secname, self.name, self.prefix, self.desc, self.con_byte, self.pin_bits, self.value_on, self.symsubsecs, self.pacsubsecs)
+		return '%s %s: prefix %s, desc %s, con_byte %d, pin_bits %d, value_on %d, pacsubsecs %d, symsubsecs %d' % (self.secname, self.name, self.prefix, self.desc, self.con_byte, self.pin_bits, self.value_on, self.pacsubsecs, self.symsubsecs)
 
 class SchemaSymbolSection(Section):
 	sectype = 0x38
