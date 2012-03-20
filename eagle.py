@@ -1,4 +1,4 @@
-import sys
+import sys, os
 import struct
 
 def dump_hex(data):
@@ -23,7 +23,8 @@ in2u = lambda val: val*254*1000
 class Section:
 	sectype = None
 	secname = None
-	def __init__(self, parent, data):
+	def __init__(self, eaglefile, parent, data):
+		self.eaglefile = eaglefile
 		self.parent = parent
 		self.data = data
 		# Default is unknown, but self.unknown lists known unknowns
@@ -112,7 +113,24 @@ class Section:
 		self.known[pos+1] |= (mask >> 8) & 0xff
 		return struct.unpack('<H', self.data[pos:pos+2])[0] & mask
 
-	def _get_name(self, pos, size): return get_name(self._get_bytes(pos, size))
+	def _get_name(self, pos, size): return self._parse_string(self._get_bytes(pos, size))
+
+	def _parse_string(self, name):
+		# Apparently there is no better way to do this..
+		# There are some random bytes after 0x7f, but that's just what they are - random
+		# Making a text longer, then shorter again does not result in the same random bytes
+		# Making a text from the beginning longer does not affect the random bytes of the following entries
+		# Deleting a text from the beginning does not affect the random bytes of the following entries
+		# Thus, there really can't be any position information there
+		# Thus, we'd just better handle every possible text field...
+		if __name__ == '__main__':
+			if name[0] != '\x7f':
+				return '\x1b[32m' + repr(name.rstrip('\x00')) + '\x1b[m'
+			return '\x1b[31m' + repr(self.eaglefile._get_next_string()) + '\x1b[m'
+		else:
+			if name[0] != '\x7f':
+				return name.rstrip('\x00')
+			return self.eaglefile._get_next_string()
 
 class UnknownSection(Section):
 	secname = '???'
@@ -1000,125 +1018,21 @@ class Indenter:
 	def __repr__(self):
 		return 'Indenter(%r, %r)' % (self.counts, self.section.secname)
 
-def read_layers(f):
-	"""
-	The sections/whatever are 24 bytes long.
-	First byte is section type. Absolutely no idea what the second byte is, it seemed to be some kind of
-	further-sections-present-bit (0x00 = not present, 0x80 = is present) at first, but it clearly isn't.
-	"""
-
-	data = f.read(24)
-	assert len(data) == 24
-	sectype = ord(data[0])
-	assert sectype == 0x10
-	root = sections[sectype](None, data)
-	end_offset = root.numsecs * 24
-	init_names(f, end_offset)
-
-	root.hexdump()
-	print '- ' + str(root)
-
-	indents = [Indenter(root)]
-	while True:
-		data = f.read(4)
-		if not data:
-			break
-		# Some kind of sentinel?
-		if data == '\x13\x12\x99\x19':
-			break
-		data += f.read(20)
-
-		indents = [indent for indent in indents if sum(indent.counts) > 0]
-		for indent in indents:
-			indent.next_section()
-		#indentstr = ' '.join(indent.section.secname + str(indent.counts) for indent in indents)
-		indent = '  ' * len(indents)
-
-		parent = indents[-1]
-
-		sectype = ord(data[0])
-		section_cls = sections.get(sectype)
-		if section_cls:
-			try:
-				section = section_cls(parent.section, data)
-				assert sum(section.subsec_counts) <= sum(parent.counts)
-			except:
-				dump_hex_ascii(data)
-				raise
-			parent.add_subsection(section)
-			indents.append(Indenter(section))
-			section.hexdump()
-			#print indentstr
-			print indent + '- ' + str(section)
-		else:
-			dump_hex_ascii(data)
-			raise ValueError, 'Unknown section type'
-
-	assert sum(sum(indent.counts) for indent in indents) == 0
-
-	dump_hex_ascii(data)
-	assert data == '\x13\x12\x99\x19'
-
-	return root
-
-_names = None
-def init_names(f, end_offset):
-	global _names
-	pos = f.tell()
-	f.seek(end_offset)
-	assert f.read(4) == '\x13\x12\x99\x19'
-	size = struct.unpack('<I', f.read(4))[0]
-	_names = f.read(size).split('\x00')
-	f.seek(pos)
-	assert _names[-2:] == ['', '']
-	_names.pop()
-	_names.pop()
-
-_nameind = 0
-def get_next_name():
-	global _names, _nameind
-	name = _names[_nameind]
-	_nameind += 1
-	return name
-
-def get_name(name):
-	# Apparently there is no better way to do this..
-	# There are some random bytes after 0x7f, but that's just what they are - random
-	# Making a text longer, then shorter again does not result in the same random bytes
-	# Making a text from the beginning longer does not affect the random bytes of the following entries
-	# Deleting a text from the beginning does not affect the random bytes of the following entries
-	# Thus, there really can't be any position information there
-	# Thus, we'd just better handle every possible text field...
-	if __name__ == '__main__':
-		if name[0] != '\x7f':
-			return '\x1b[32m' + repr(name.rstrip('\x00')) + '\x1b[m'
-		return '\x1b[31m' + repr(get_next_name()) + '\x1b[m'
-	else:
-		if name[0] != '\x7f':
-			return name.rstrip('\x00')
-		return get_next_name()
-
-def read_name_array(f):
-	size = struct.unpack('<I', f.read(4))[0]
-	strings = f.read(size).split('\x00')
-	for i, value in enumerate(strings):
-		print i, repr(value)
-	checksum = f.read(4)
-
 sentinels = {
 	'\x25\x04\x00\x20': ('\xef\xcd\xab\x89', NetClass),
 	'\x10\x04\x00\x20': ('\x98\xba\xdc\xfe', DRCRules),
 }
 
-if __name__ == '__main__':
-	fname = sys.argv[1]
+class EagleFile:
+	def __init__(self, f):
+		self.string_index = 0
+		self._read_sections(f)
+		assert self.string_index == len(self.strings)
+		self._skip_strings(f)
+		self._read_rules(f)
 
-	with file(fname) as f:
-		#data = f.read(6*16)
-		#print ''.join('%02x' % (ord(byte),) for byte in data)
-
-		root = read_layers(f)
-		read_name_array(f)
+	def _read_rules(self, f):
+		self.rules = []
 		while True:
 			start_sentinel = f.read(4)
 			if not start_sentinel:
@@ -1130,6 +1044,7 @@ if __name__ == '__main__':
 			length = struct.unpack('<I', f.read(4))[0] - 4
 			data = f.read(length)
 			section = parser(data)
+			self.rules.append(section)
 			section.dump()
 			assert f.read(4) == end_sentinel
 			checksum = f.read(4)
@@ -1139,5 +1054,88 @@ if __name__ == '__main__':
 			print 'Extra data:'
 			dump_hex_ascii(rest)
 
-	assert _nameind == len(_names)
+	def _init_strings(self, f, offset):
+		pos = f.tell()
+		f.seek(offset)
+		assert f.read(4) == '\x13\x12\x99\x19'
+		size = struct.unpack('<I', f.read(4))[0]
+		self.strings = f.read(size).split('\x00')
+		f.seek(pos)
+		assert self.strings[-2:] == ['', '']
+		self.strings.pop()
+		self.strings.pop()
+
+	def _skip_strings(self, f):
+		size = struct.unpack('<I', f.read(4))[0]
+		# Skip strings and checksum
+		f.seek(size + 4, os.SEEK_CUR)
+
+	def _get_next_string(self):
+		name = self.strings[self.string_index]
+		self.string_index += 1
+		return name
+
+	def _read_sections(self, f):
+		# The sections/whatever are 24 bytes long.
+		# First byte is section type. Absolutely no idea what the second byte is, it seemed to be some kind of
+		# further-sections-present-bit (0x00 = not present, 0x80 = is present) at first, but it clearly isn't.
+
+		# Read first section and initialize strings
+		data = f.read(24)
+		assert len(data) == 24
+		sectype = ord(data[0])
+		assert sectype == 0x10
+		self.root = sections[sectype](self, None, data)
+		end_offset = self.root.numsecs * 24
+		self._init_strings(f, end_offset)
+
+		self.root.hexdump()
+		print '- ' + str(self.root)
+
+		indents = [Indenter(self.root)]
+		while True:
+			data = f.read(4)
+			if not data:
+				break
+			# Some kind of sentinel?
+			if data == '\x13\x12\x99\x19':
+				break
+			data += f.read(20)
+
+			indents = [indent for indent in indents if sum(indent.counts) > 0]
+			for indent in indents:
+				indent.next_section()
+			#indentstr = ' '.join(indent.section.secname + str(indent.counts) for indent in indents)
+			indent = '  ' * len(indents)
+
+			parent = indents[-1]
+
+			sectype = ord(data[0])
+			section_cls = sections.get(sectype)
+			if section_cls:
+				try:
+					section = section_cls(self, parent.section, data)
+					assert sum(section.subsec_counts) <= sum(parent.counts)
+				except:
+					dump_hex_ascii(data)
+					raise
+				parent.add_subsection(section)
+				indents.append(Indenter(section))
+				section.hexdump()
+				#print indentstr
+				print indent + '- ' + str(section)
+			else:
+				dump_hex_ascii(data)
+				raise ValueError, 'Unknown section type'
+
+		assert sum(sum(indent.counts) for indent in indents) == 0
+
+		dump_hex_ascii(data)
+		assert data == '\x13\x12\x99\x19'
+
+if __name__ == '__main__':
+	fname = sys.argv[1]
+
+	with file(fname) as f:
+		EagleFile(f)
 
