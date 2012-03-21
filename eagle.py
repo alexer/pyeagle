@@ -1080,7 +1080,7 @@ class Indenter:
 		return 'Indenter(%r, %r)' % (self.counts, self.section.secname)
 
 class UnknownRule:
-	def __init__(self, data):
+	def __init__(self, eaglefile, data):
 		self.data = data
 
 	def dump(self):
@@ -1089,7 +1089,7 @@ class UnknownRule:
 sentinels = {
 	'\x25\x04\x00\x20': (['\xef\xcd\xab\x89'], NetClass),
 	'\x10\x04\x00\x20': (['\x98\xba\xdc\xfe'], DRCRules),
-	'\x23\x05\x00\x20': (['\x30\x01\x09\x20', '\x64\x00\x00\x00'], UnknownRule),
+	'\x23\x05\x00\x20': (['\x30\x01\x09\x20', '\x64\x00\x00\x00', '\xf4\x01\x00\x00'], UnknownRule),
 }
 
 class EagleFile:
