@@ -128,6 +128,14 @@ class EagleDrawing(BaseDrawing):
 			self.draw_pad(cr, item, **kwargs)
 		elif isinstance(item, eagle.SmdSection):
 			self.draw_smd(cr, item, **kwargs)
+		elif isinstance(item, eagle.TextBaseSection):
+			pass # XXX: Todo
+		elif isinstance(item, eagle.JunctionSection):
+			self.draw_junction(cr, item, **kwargs)
+		elif isinstance(item, eagle.PolygonSection):
+			self.draw_polygon(cr, item, **kwargs)
+		elif isinstance(item, (eagle.SchemaConnectionSection, eagle.BoardConnectionSection)):
+			pass
 		#else:
 		#	raise TypeError, 'Unknown section: ' + item.secname
 
@@ -213,6 +221,10 @@ class EagleDrawing(BaseDrawing):
 		self.draw_symbol(cr, pac, mirrored = mirrored, **kwargs)
 		cr.restore()
 
+	def draw_polygon(self, cr, item, **kwargs):
+		for subsec in item.subsections[0]:
+			self.draw_item(cr, subsec, **kwargs)
+
 	def draw_line(self, cr, item, **kwargs):
 		self.set_color_by_layer(cr, item, **kwargs)
 		if item.linetype in (0x00, 0x01):
@@ -245,6 +257,11 @@ class EagleDrawing(BaseDrawing):
 	def draw_rectangle(self, cr, item, **kwargs):
 		cr.rectangle(item.x1, item.y1, item.x2-item.x1, item.y2-item.y1)
 		self.fill_with_pattern_by_layer(cr, item, **kwargs)
+
+	def draw_junction(self, cr, item, **kwargs):
+		cr.set_source_rgba(*self.colors[2])
+		cr.arc(item.x, item.y, eagle.in2u(0.02), 0, 2*math.pi)
+		cr.fill()
 
 	def draw_pin(self, cr, item, **kwargs):
 		length = item.length*25400
