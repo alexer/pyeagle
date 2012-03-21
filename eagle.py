@@ -959,7 +959,7 @@ class DRCRules:
 		else:
 			self.stackup = 'xxx'
 		# XXX: Does not handle design rules from older versions
-		assert len(data) == 426
+		self.version = {426: 5, 319: 4}[len(data)]
 		magic, data = _cut('<I', data, 4, True)
 		assert magic == 0x12345678
 		# wire2wire wire2pad wire2via pad2pad pad2via via2via pad2smd via2smd smd2smd
@@ -970,13 +970,20 @@ class DRCRules:
 		assert zero == 0
 		const, data = _cut('<2I', data, 8)
 		assert const == (0, 0)
-		(self.min_width, self.min_drill, self.min_micro_via, self.blind_via_ratio), data = _cut('<3Id', data, 20)
-		# restring order: padtop padinner padbottom viaouter viainner microviaouter microviainner
-		self.restring_percentages, data = _cut('<7d', data, 56)
-		restring_limits, data = _cut('<14I', data, 56)
+		(self.min_width, self.min_drill), data = _cut('<2I', data, 8)
+		if self.version >= 5:
+			(self.min_micro_via, self.blind_via_ratio), data = _cut('<Id', data, 12)
+		# restring order: padtop padinner padbottom viaouter viainner (microviaouter microviainner)
+		if self.version >= 5:
+			self.restring_percentages, data = _cut('<7d', data, 56)
+			restring_limits, data = _cut('<14I', data, 56)
+		else:
+			self.restring_percentages, data = _cut('<5d', data, 40)
+			restring_limits, data = _cut('<10I', data, 40)
 		self.restring_mins = restring_limits[0::2]
 		self.restring_maxs = restring_limits[1::2]
 		# top bottom first, -1=As in library, 0=square, 1=round, 2=octagon
+		# XXX: check first for older
 		self.pad_shapes, data = _cut('<3i', data, 12)
 		# mask order: stop cream
 		self.mask_percentages, data = _cut('<2d', data, 16)
@@ -990,18 +997,31 @@ class DRCRules:
 		self.supply_gap, data = _cut('<dII', data, 16)
 		(self.supply_annulus, self.supply_thermal), data = _cut('<II', data, 8)
 		(self.restring_annulus, self.restring_thermal, self.via_thermals), data = _cut('<3B', data, 3)
-		(self.check_grid, self.check_angle, xxx, self.check_font, self.check_restrict), data = _cut('<BBIBB', data, 8)
+		(self.check_grid, self.check_angle, xxx), data = _cut('<BBI', data, 6)
 		assert xxx == 50
-		(xxx, self.long_elongation, self.offset_elongation), data = _cut('<3B', data, 3)
+		if self.version < 5:
+			xxx, data = _cut('<34s', data, 34, True)
+			print repr(xxx)
+			assert xxx == '\xff\xff\xf0\x00' + 30*'\x00'
+		(self.check_font, self.check_restrict), data = _cut('<BB', data, 2)
+		xxx, data = _cut('<B', data, 1, True)
 		assert xxx == 13
-		self.layer_coppers, data = _cut('<16I', data, 64)
-		self.layer_isolations, data = _cut('<15I', data, 60)
+		if self.version >= 5:
+			(self.long_elongation, self.offset_elongation), data = _cut('<2B', data, 2)
+			self.layer_coppers, data = _cut('<16I', data, 64)
+			self.layer_isolations, data = _cut('<15I', data, 60)
+		else:
+			xxx, data = _cut('<29s', data, 29, True)
+			assert xxx == 29*'\x00'
+		assert data == ''
 
 	def dump(self):
 		print (self.name, self.desc, self.stackup)
 		print 'Clearances:', self.clearances
 		print 'Copper/dimension / drill/hole:', self.copper2dimension, self.drill2hole
-		print 'Minimum width/drill/micro via/blind via ratio:', self.min_width, self.min_drill, self.min_micro_via, self.blind_via_ratio
+		print 'Minimum width/drill:', self.min_width, self.min_drill
+		if self.version >= 5:
+			print 'Minimum micro via/blind via ratio:', self.min_micro_via, self.blind_via_ratio
 		print 'Restring perc/min/max:', self.restring_percentages, self.restring_mins, self.restring_maxs
 		print 'Pad shapes top/bottom/first:', self.pad_shapes
 		print 'Mask perc/min/max / limit:', self.mask_percentages, self.mask_mins, self.mask_maxs, self.mask_limit
@@ -1010,8 +1030,9 @@ class DRCRules:
 		print 'Supply thermal/annulus:', self.supply_thermal, self.supply_annulus
 		print 'Supply restring annulus/thermal / via thermals:', self.restring_annulus, self.restring_thermal, self.via_thermals
 		print 'Check grid/angle/font/restrict:', self.check_grid, self.check_angle, self.check_font, self.check_restrict
-		print 'Elongation for long/offset pad:', self.long_elongation, self.offset_elongation
-		print 'Layer coppers/isolations:', self.layer_coppers, self.layer_isolations
+		if self.version >= 5:
+			print 'Elongation for long/offset pad:', self.long_elongation, self.offset_elongation
+			print 'Layer coppers/isolations:', self.layer_coppers, self.layer_isolations
 
 class NetClass:
 	def __init__(self, data):
