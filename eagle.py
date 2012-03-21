@@ -1001,7 +1001,7 @@ class DRCRules:
 		self.mask_mins = mask_limits[0:4:2]
 		self.mask_maxs = mask_limits[1:4:2]
 		self.mask_limit = mask_limits[4]
-		# XXX: Too lazy to do other shape data
+		# XXX: Too lazy to do diameter flags
 		# percentage min max
 		self.smd_roundness, data = _cut('<dII', data, 16)
 		self.supply_gap, data = _cut('<dII', data, 16)
