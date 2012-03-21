@@ -129,7 +129,8 @@ class EagleDrawing(BaseDrawing):
 		elif isinstance(item, eagle.SmdSection):
 			self.draw_smd(cr, item, **kwargs)
 		elif isinstance(item, eagle.TextBaseSection):
-			pass # XXX: Todo
+			pass
+			#self.draw_text(cr, item, **kwargs)
 		elif isinstance(item, eagle.JunctionSection):
 			self.draw_junction(cr, item, **kwargs)
 		elif isinstance(item, eagle.PolygonSection):
@@ -219,6 +220,18 @@ class EagleDrawing(BaseDrawing):
 		pacs = brd.subsections[0][item.libno-1]
 		pac = pacs.subsections[0][item.pacno-1]
 		self.draw_symbol(cr, pac, mirrored = mirrored, **kwargs)
+		cr.restore()
+
+	def draw_text(self, cr, item, **kwargs):
+		# XXX: Eh...
+		self.set_color_by_layer(cr, item, **kwargs)
+		cr.save()
+		fascent, fdescent, fheight, fxadvance, fyadvance = cr.font_extents()
+		xbearing, ybearing, width, height, xadvance, yadvance = cr.text_extents(item.text)
+		cr.move_to(item.x, item.y)#(-xbearing, -fascent)
+		cr.scale(1, -1)
+		cr.set_font_size(item.size_2*2)
+		cr.show_text(item.text)
 		cr.restore()
 
 	def draw_polygon(self, cr, item, **kwargs):
