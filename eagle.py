@@ -1040,13 +1040,21 @@ class DRCRules:
 
 class NetClass:
 	def __init__(self, eaglefile, data):
-		ind = data.index('\x00')
-		self.name, data = data[:ind], data[ind+1:]
-		assert len(data) == 48
+		self.version = eaglefile.root.major
+		length = {5: 48, 4: 20}[self.version]
+		if len(data) > length:
+			ind = data.index('\x00')
+			self.name, data = data[:ind], data[ind+1:]
+		else:
+			self.name = ''
+		assert (self.version, len(data)) in [(5, 48), (4, 20)]
 		self.netclassno, magic, self.width, self.drill = struct.unpack('<IIII', data[0:16])
-		self.clearances = struct.unpack('<8I', data[16:48])
 		assert magic == 0x87654321
-		assert self.clearances[self.netclassno+1:] == (7-self.netclassno)*(0,), 'I thought clearances outside the triangle were supposed to always be zero?'
+		if self.version >= 5:
+			self.clearances = struct.unpack('<8I', data[16:48])
+			assert self.clearances[self.netclassno+1:] == (7-self.netclassno)*(0,), 'I thought clearances outside the triangle were supposed to always be zero?'
+		else:
+			self.clearances = self.netclassno * (0, ) + struct.unpack('<I', data[16:20])
 
 	def dump(self):
 		print 'Netclass %d, %s: width %f", drill %f", clearance %f", others %r' % (self.netclassno, self.name, u2in(self.width), u2in(self.drill), u2in(self.clearances[self.netclassno]), self.clearances[:self.netclassno])
