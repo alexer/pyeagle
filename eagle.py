@@ -1218,9 +1218,3 @@ class EagleFile:
 
 		assert data == '\x13\x12\x99\x19'
 
-if __name__ == '__main__':
-	fname = sys.argv[1]
-
-	with file(fname) as f:
-		EagleFile(f, True)
-
