@@ -180,12 +180,15 @@ class StartSection(Section):
 	def parse(self):
 		self.subsecs = self._get_uint16(2)
 		self.numsecs = self._get_uint32(4)
-		self._get_unknown(8, 16)
+		self.major = self._get_uint8(8)
+		self.minor = self._get_uint8(9)
+		self.version = (self.major, self.minor)
+		self._get_unknown(10, 16)
 		# XXX: hack
 		self.subsec_counts = [self.subsecs, self.numsecs - self.subsecs - 1]
 
 	def __str__(self):
-		return '%s: subsecs %d, numsecs %d' % (self.secname, self.subsecs, self.numsecs)
+		return '%s: version %s, subsecs %d, numsecs %d' % (self.secname, self.version, self.subsecs, self.numsecs)
 
 class Unknown11Section(UnknownSection):
 	sectype = 0x11
