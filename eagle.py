@@ -1099,7 +1099,9 @@ sentinels = {
 }
 
 class EagleFile:
-	def __init__(self, f):
+	def __init__(self, f, verbose = False):
+		self.verbose = verbose
+
 		self.string_index = 0
 		self._read_sections(f)
 		assert self.string_index == len(self.strings)
@@ -1120,7 +1122,8 @@ class EagleFile:
 			data = f.read(length)
 			section = parser(self, data)
 			self.rules.append(section)
-			section.dump()
+			if self.verbose == True or 'rules' in self.verbose:
+				section.dump()
 			sentinel = f.read(4)
 			assert sentinel in end_sentinels, 'Wrong end sentinel: ' + repr(sentinel)
 			checksum = f.read(4)
@@ -1165,8 +1168,13 @@ class EagleFile:
 		end_offset = self.root.numsecs * 24
 		self._init_strings(f, end_offset)
 
-		self.root.hexdump()
-		print '- ' + str(self.root)
+		if self.root.major != 5:
+			print >>sys.stderr, 'Warning: Only eagle version 5 files are well supported at the moment'
+
+		if self.verbose == True or 'hexdump' in self.verbose:
+			self.root.hexdump()
+		if self.verbose == True or 'dump' in self.verbose:
+			print '- ' + str(self.root)
 
 		indents = [Indenter(self.root)]
 		while True:
@@ -1197,21 +1205,22 @@ class EagleFile:
 					raise
 				parent.add_subsection(section)
 				indents.append(Indenter(section))
-				section.hexdump()
-				#print indentstr
-				print indent + '- ' + str(section)
+				if self.verbose == True or 'hexdump' in self.verbose:
+					section.hexdump()
+				if self.verbose == True or 'dump' in self.verbose:
+					#print indentstr
+					print indent + '- ' + str(section)
 			else:
 				dump_hex_ascii(data)
 				raise ValueError, 'Unknown section type'
 
 		assert sum(sum(indent.counts) for indent in indents) == 0
 
-		dump_hex_ascii(data)
 		assert data == '\x13\x12\x99\x19'
 
 if __name__ == '__main__':
 	fname = sys.argv[1]
 
 	with file(fname) as f:
-		EagleFile(f)
+		EagleFile(f, True)
 
