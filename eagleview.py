@@ -58,7 +58,10 @@ class EagleDrawing(BaseDrawing):
 
 	def set_color_by_layer(self, cr, item, mirrored, **kwargs):
 		layerno = item.layer if not mirrored else self.layers[item.layer].other
-		color = self.colors[self.layers[layerno].color]
+		try:
+			color = self.colors[self.layers[layerno].color]
+		except:
+			color = (1, 1, 1, 0.8)
 		cr.set_source_rgba(*color)
 
 	def set_pattern_by_layer(self, cr, item, mirrored, **kwargs):
