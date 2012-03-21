@@ -951,7 +951,8 @@ def _cut(fmt, data, size, onlyone = False):
 	return struct.unpack(fmt, data[:size])[0], data[size:]
 
 class DRCRules:
-	def __init__(self, data):
+	def __init__(self, eaglefile, data):
+		self.version = eaglefile.root.major
 		ind = data.index('\x00')
 		self.name, data = data[:ind], data[ind+1:]
 		ind = data.index('\x00')
@@ -962,7 +963,7 @@ class DRCRules:
 		else:
 			self.stackup = 'xxx'
 		# XXX: Does not handle design rules from older versions
-		self.version = {426: 5, 319: 4}[len(data)]
+		assert (self.version, len(data)) in [(5, 426), (4, 319)]
 		magic, data = _cut('<I', data, 4, True)
 		assert magic == 0x12345678
 		# wire2wire wire2pad wire2via pad2pad pad2via via2via pad2smd via2smd smd2smd
@@ -1038,7 +1039,7 @@ class DRCRules:
 			print 'Layer coppers/isolations:', self.layer_coppers, self.layer_isolations
 
 class NetClass:
-	def __init__(self, data):
+	def __init__(self, eaglefile, data):
 		ind = data.index('\x00')
 		self.name, data = data[:ind], data[ind+1:]
 		assert len(data) == 48
@@ -1103,7 +1104,7 @@ class EagleFile:
 			end_sentinels, parser = sentinels[start_sentinel]
 			length = struct.unpack('<I', f.read(4))[0] - 4
 			data = f.read(length)
-			section = parser(data)
+			section = parser(self, data)
 			self.rules.append(section)
 			section.dump()
 			sentinel = f.read(4)
