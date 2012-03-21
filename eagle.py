@@ -1099,7 +1099,7 @@ sentinels = {
 }
 
 class EagleFile:
-	def __init__(self, f, verbose = False):
+	def __init__(self, f, verbose = ()):
 		self.verbose = verbose
 
 		self.string_index = 0
@@ -1122,7 +1122,7 @@ class EagleFile:
 			data = f.read(length)
 			section = parser(self, data)
 			self.rules.append(section)
-			if self.verbose == True or 'rules' in self.verbose:
+			if 'rules' in self.verbose:
 				section.dump()
 			sentinel = f.read(4)
 			assert sentinel in end_sentinels, 'Wrong end sentinel: ' + repr(sentinel)
@@ -1171,9 +1171,9 @@ class EagleFile:
 		if self.root.major != 5:
 			print >>sys.stderr, 'Warning: Only eagle version 5 files are well supported at the moment'
 
-		if self.verbose == True or 'hexdump' in self.verbose:
+		if 'hexdump' in self.verbose:
 			self.root.hexdump()
-		if self.verbose == True or 'dump' in self.verbose:
+		if 'dump' in self.verbose:
 			print '- ' + str(self.root)
 
 		indents = [Indenter(self.root)]
@@ -1205,9 +1205,9 @@ class EagleFile:
 					raise
 				parent.add_subsection(section)
 				indents.append(Indenter(section))
-				if self.verbose == True or 'hexdump' in self.verbose:
+				if 'hexdump' in self.verbose:
 					section.hexdump()
-				if self.verbose == True or 'dump' in self.verbose:
+				if 'dump' in self.verbose:
 					#print indentstr
 					print indent + '- ' + str(section)
 			else:
