@@ -232,6 +232,7 @@ class EagleDrawing(BaseDrawing):
 		cr.scale(1, -1)
 		cr.set_font_size(item.size_2*2)
 		cr.show_text(item.text)
+		cr.fill()
 		cr.restore()
 
 	def draw_polygon(self, cr, item, **kwargs):
