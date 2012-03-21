@@ -258,7 +258,10 @@ class SchemaSection(Section):
 		self._get_zero(3, 1)
 		self.libsubsecs = self._get_uint32(4)
 		self.shtsubsecs = self._get_uint32(8)
-		self.atrsubsecs = self._get_uint32(12)
+		if self.eaglefile.root.major >= 5:
+			self.atrsubsecs = self._get_uint32(12)
+		else:
+			self.atrsubsecs = 0
 		self._get_zero(16, 3)
 		self.xref_format = self._get_name(19, 5)
 		self.subsec_counts = [self.atrsubsecs, self.libsubsecs, self.shtsubsecs]
@@ -769,8 +772,11 @@ class SchemaSymbolSection(Section):
 		self.x = self._get_int32(4)
 		self.y = self._get_int32(8)
 		placed = self._get_int16(12)
-		assert placed in (0, -1), 'What\'s this?'
-		self.placed = placed == -1
+		if self.eaglefile.root.major >= 5:
+			assert placed in (0, -1), 'What\'s this?'
+			self.placed = placed == -1
+		else:
+			self.placed = True
 		self.symno = self._get_uint16(14)
 		self.angle = self._get_uint16_mask(16, 0x0c00)
 		self.mirrored = bool(self._get_uint16_mask(16, 0x1000))
