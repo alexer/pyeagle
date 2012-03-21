@@ -158,6 +158,9 @@ class TextBaseSection(Section):
 		self._get_zero16_mask(16, 0xa000)
 		if self.sectype in (0x31, 0x41):
 			self.text = self._get_name(18, 6)
+		else:
+			self._get_bytes(18, 6)
+			self.text = ''
 		assert self.sectype == 0x31 or self.angle & 0x3ff == 0x000, 'Shouldn\'t angle be one of 0, 90, 180 or 270 for this section?'
 		# Mostly true, but 0x01 has been spotted once
 		#assert self.sectype in (0x31, 0x41) or self.data[18:24] == '\x00'*6, 'This section shouldn\'t contain any text?'
