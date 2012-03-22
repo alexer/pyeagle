@@ -161,41 +161,40 @@ class EagleDrawing(BaseDrawing):
 		cr.restore()
 
 	def draw_schema(self, cr, sch, **kwargs):
-		for item in sch.subsections[1]:
+		for item in sch.symbols:
 			self.draw_item(cr, item, **kwargs)
 		cr.set_source_rgb(0.0, 0.0, 1.0)
-		for bus in sch.subsections[2]:
-			for path in bus.subsections[0]:
-				for item in path.subsections[0]:
+		for bus in sch.buses:
+			for path in bus.paths:
+				for item in path.drawables:
 					self.draw_item(cr, item, **kwargs)
 		cr.set_source_rgb(0.0, 1.0, 0.0)
-		for item in sch.subsections[0]:
+		for item in sch.drawables:
 			self.draw_item(cr, item, **kwargs)
-		for net in sch.subsections[3]:
-			for path in net.subsections[0]:
-				for item in path.subsections[0]:
+		for net in sch.nets:
+			for path in net.paths:
+				for item in path.drawables:
 					self.draw_item(cr, item, **kwargs)
 
 	def draw_board(self, cr, brd, **kwargs):
-		for item in brd.subsections[2]:
+		for item in brd.packages:
 			self.draw_item(cr, item, **kwargs)
-		for item in brd.subsections[1]:
+		for item in brd.drawables:
 			self.draw_item(cr, item, **kwargs)
-		for net in brd.subsections[3]:
-			for item in net.subsections[0]:
+		for net in brd.nets:
+			for item in net.drawables:
 				self.draw_item(cr, item, **kwargs)
 
 	def draw_symbol(self, cr, sym, **kwargs):
-		for item in sym.subsections[0]:
+		for item in sym.drawables:
 			self.draw_item(cr, item, **kwargs)
 
 	def draw_package(self, cr, pac, **kwargs):
-		for item in pac.subsections[0]:
+		for item in pac.drawables:
 			self.draw_item(cr, item, **kwargs)
 
 	def draw_schemadevice(self, cr, schdev, **kwargs):
-		schsyms = [item for item in schdev.subsections[0] if isinstance(item, eagle.SchemaSymbolSection)]
-		for schsym in schsyms:
+		for schsym in schdev.symbols:
 			if not schsym.placed:
 				continue
 			cr.save()
@@ -204,11 +203,9 @@ class EagleDrawing(BaseDrawing):
 				cr.scale(-1, 1)
 			cr.rotate(math.radians(360 * schsym.angle / 4096.))
 			lib = self.libraries[schdev.libno-1]
-			devs = lib.subsections[0][0]
-			syms = lib.subsections[1][0]
-			dev = devs.subsections[0][schdev.devno-1]
-			devsym = dev.subsections[1][schsym.symno-1]
-			sym = syms.subsections[0][devsym.symno-1]
+			dev = lib.devices.devices[schdev.devno-1]
+			devsym = dev.symbols[schsym.symno-1]
+			sym = lib.symbols.symbols[devsym.symno-1]
 			self.draw_symbol(cr, sym, **kwargs)
 			cr.restore()
 
@@ -220,8 +217,8 @@ class EagleDrawing(BaseDrawing):
 			cr.scale(-1, 1)
 		cr.rotate(math.radians(360 * item.angle / 4096.))
 		brd = self.module
-		pacs = brd.subsections[0][item.libno-1]
-		pac = pacs.subsections[0][item.pacno-1]
+		pacs = brd.definitions[item.libno-1]
+		pac = pacs.packages[item.pacno-1]
 		self.draw_symbol(cr, pac, mirrored = mirrored, **kwargs)
 		cr.restore()
 
@@ -239,7 +236,7 @@ class EagleDrawing(BaseDrawing):
 		cr.restore()
 
 	def draw_polygon(self, cr, item, **kwargs):
-		for subsec in item.subsections[0]:
+		for subsec in item.drawables:
 			self.draw_item(cr, subsec, **kwargs)
 
 	def draw_line(self, cr, item, **kwargs):
@@ -380,19 +377,23 @@ if __name__ == "__main__":
 		eaglefile = eagle.EagleFile(f)
 		root = eaglefile.root
 		drc = None
-		grid = [subsec for subsec in root.subsections[0] if isinstance(subsec, eagle.GridSection)][0]
-		layers = dict((subsec.layer, subsec) for subsec in root.subsections[0] if isinstance(subsec, eagle.LayerSection))
-		libs = [subsec for subsec in root.subsections[1] if isinstance(subsec, eagle.LibrarySection)]
+		grid = root.grid
+		libs = []
+		layers = dict((layer.layer, layer) for layer in root.layers)
 		if itemtype == 'schema':
-			item = [subsec for subsec in root.subsections[1] if isinstance(subsec, eagle.SchemaSection)][0]
-			libs = item.subsections[1]
-			item = item.subsections[2][0]
+			item = root.drawing.sheets[0]
+			libs = root.drawing.libraries
 		elif itemtype == 'board':
+			item = root.drawing
 			drc = [rule for rule in eaglefile.rules if isinstance(rule, eagle.DRCRules)][0]
-			item = [subsec for subsec in root.subsections[1] if isinstance(subsec, eagle.BoardSection)][0]
 		else:
-			items = libs[0].subsections['device symbol package'.split().index(itemtype)][0]
-			item = [item for item in items.subsections[0] if item.name == name][0]
+			if itemtype == 'device':
+				items = root.drawing.devices.devices
+			elif itemtype == 'symbol':
+				items = root.drawing.symbols.symbols
+			elif itemtype == 'package':
+				items = root.drawing.packages.packages
+			item = [item for item in items if item.name == name][0]
 
 	widget = EagleGTK(EagleDrawing(drc, grid, layers, libs, item))
 
