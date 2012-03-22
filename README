@@ -1,0 +1,72 @@
+Python library for reading/displaying Eagle binary files
+========================================================
+
+Supported versions
+------------------
+
+This library has been written and tested for Eagle 5.11.
+It *probably* works well with other 5.x versions, but
+version 4.x support is not very good. Some very limited
+testing with version 4.9 has been performed, and the files
+mostly parse okay, but there are differences in the format,
+so the 4.x format should be systematically reviewed instead
+of randomly fixing just the differences that are encountered.
+
+As an example, the value used for long pads in 5.11 means
+offset pads in 4.9. Also, in 4.9, the schema section has no
+attribute subsections, but the field used in 5.11 for
+their count contains some other data in 4.9, which kind of
+caused the parser to wonder why a child section overflows
+the parent section.
+
+Missing features
+----------------
+
+There are many unknown bits and bytes, for which I have no
+idea what they are supposed to mean. You can get a colored
+hexdump with eagledump.py to see visually which parts of
+a file are not understood. Some things are very possibly
+misunderstood. The parser tries to catch unexpected things,
+but it certainly won't catch everything. String references
+in the binary files are done in such a way, that missing
+even one causes you to mess up all the strings after it.
+Fortunately, at least the parser knows when it has messed
+up. (When not all strings have been read)
+I have no idea how the checksum calculation is done, so
+files can't currently be written. (And even if this was
+known, there is still some unknown data)
+
+The renderer does not fill polygons or render text.
+(Because filling polygons is pretty hard when you have to
+take the isolation aspects into account. Add the fact that
+you also have a minimum width to take into account, and
+you don't want to do it anymore, at all. Text rendering
+is very probably hard to do exactly like eagle, and if I
+can't have it exactly right, I don't want it at all ;)
+Items aren't rendered in the correct order or grouped in
+any way. Thus items in bottom layer might be drawn on top
+of items in the top layer, and items in the same layer
+show through each other. Fill styles aren't used for lines,
+arcs and some other things. Some items aren't rendered at
+all, such as holes. Some properties aren't rendered correctly,
+such as line styles and pin functions. (Lines are always
+rendered continuous, pins without function, etc.)
+
+Usage
+-----
+
+Dumping files: python eagledump.py FILE
+- File can be a library, schematic or board (.lbr, .sch, .brd)
+- Dumps files both in colored hexdump and human readable format
+- Hexdump colors:
+  * Red = unknown byte
+  * Green = known byte
+  * Blue = presumed to always be zero
+  * Some combination of the above = contains bits from the
+    respective categories
+
+Viewing files: python eagleview.py FILE TYPE OBJECT
+- File can be a library, schematic or board (.lbr, .sch, .brd)
+- Type is one of: schematic, board, symbol, package, device
+- Object selects the symbol/package/device to be displayed
+
