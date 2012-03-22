@@ -371,9 +371,22 @@ class EagleGTK(CairoGTK):
 if __name__ == "__main__":
 	import sys
 
-	library, itemtype, name = sys.argv[1:4]
+	fname = sys.argv[1]
+	if len(sys.argv) > 2:
+		itemtype = sys.argv[2]
+	elif fname.endswith('.sch'):
+		itemtype = 'schema'
+	elif fname.endswith('.brd'):
+		itemtype = 'board'
+	else:
+		print 'You have to specify the type and name of the item you want to display with libraries'
+		sys.exit()
+	assert itemtype in 'schema board device symbol package'.split()
 
-	with file(library) as f:
+	if itemtype in 'device symbol package'.split():
+		name = sys.argv[3]
+
+	with file(fname) as f:
 		eaglefile = eagle.EagleFile(f)
 		root = eaglefile.root
 		drc = None
