@@ -176,6 +176,17 @@ class TextBaseSection(Section):
 			extra = ''
 		return '%s: at (%f", %f") size %f", angle %s, mirror %d, spin %d, layer %d, ratio %d%%, font %s%s' % (self.secname, u2in(self.x), u2in(self.y), u2in(self.size_2*2), angle, self.mirrored, self.spin, self.layer, self.ratio, font, extra)
 
+def subsection_property(which, many = True, secname = None):
+	if not many and not secname:
+		return property(lambda self: self.subsections[which][0])
+	elif not many and secname:
+		return property(lambda self: [subsec for subsec in self.subsections[which] if subsec.secname == secname][0])
+	elif many and not secname:
+		return property(lambda self: self.subsections[which])
+	elif many and secname:
+		return property(lambda self: [subsec for subsec in self.subsections[which] if subsec.secname == secname])
+	assert False
+
 class StartSection(Section):
 	sectype = 0x10
 	secname = 'Start'
@@ -188,6 +199,11 @@ class StartSection(Section):
 		self._get_unknown(10, 16)
 		# XXX: hack
 		self.subsec_counts = [self.subsecs, self.numsecs - self.subsecs - 1]
+
+	settings = subsection_property(0, True, None)
+	grid = subsection_property(0, False, 'Grid')
+	layers = subsection_property(0, True, 'Layer')
+	drawing = subsection_property(1, False, None)
 
 	def __str__(self):
 		return '%s: version %s, subsecs %d, numsecs %d' % (self.secname, self.version, self.subsecs, self.numsecs)
@@ -268,6 +284,10 @@ class SchemaSection(Section):
 		self.xref_format = self._get_name(19, 5)
 		self.subsec_counts = [self.atrsubsecs, self.libsubsecs, self.shtsubsecs]
 
+	attributes = subsection_property(0, True, None)
+	libraries = subsection_property(1, True, None)
+	sheets = subsection_property(2, True, None)
+
 	def __str__(self):
 		return '%s: xref format %s, attrsubsecs %d, libsubsecs %d, sheetsubsecs %d' % (self.secname, self.xref_format, self.atrsubsecs, self.libsubsecs, self.shtsubsecs)
 
@@ -281,6 +301,10 @@ class LibrarySection(Section):
 		self.pacsubsecs = self._get_uint32(12)
 		self.name = self._get_name(16, 8)
 		self.subsec_counts = [self.devsubsecs, self.symsubsecs, self.pacsubsecs]
+
+	devices = subsection_property(0, False, None)
+	symbols = subsection_property(1, False, None)
+	packages = subsection_property(2, False, None)
 
 	def __str__(self):
 		return '%s %s: devsubsecs %d, symsubsecs %d, pacsubsecs %d' % (self.secname, self.name, self.devsubsecs, self.symsubsecs, self.pacsubsecs)
@@ -296,6 +320,8 @@ class DevicesSection(Section):
 		self.libname = self._get_name(16, 8)
 		self.subsec_counts = [self.subsecs]
 
+	devices = subsection_property(0, True, None)
+
 	def __str__(self):
 		return '%s: libname %s, subsecs %d, children %d' % (self.secname, self.libname, self.subsecs, self.children)
 
@@ -310,6 +336,8 @@ class SymbolsSection(Section):
 		self.libname = self._get_name(16, 8)
 		self.subsec_counts = [self.subsecs]
 
+	symbols = subsection_property(0, True, None)
+
 	def __str__(self):
 		return '%s: libname %s, subsecs %d, children %d' % (self.secname, self.libname, self.subsecs, self.children)
 
@@ -323,6 +351,8 @@ class PackagesSection(Section):
 		self.libname = self._get_name(16, 8)
 		self.desc = self._get_name(10, 6)
 		self.subsec_counts = [self.subsecs]
+
+	packages = subsection_property(0, True, None)
 
 	def __str__(self):
 		return '%s: libname %s, desc %s, subsecs %d, children %d' % (self.secname, self.libname, self.desc, self.subsecs, self.children)
@@ -341,6 +371,11 @@ class SchemaSheetSection(Section):
 		self.netsubsecs = self._get_uint32(20)
 		self.subsec_counts = [self.drawsubsecs, self.symsubsecs, self.bussubsecs, self.netsubsecs]
 
+	drawables = subsection_property(0, True, None)
+	symbols = subsection_property(1, True, None)
+	buses = subsection_property(2, True, None)
+	nets = subsection_property(3, True, None)
+
 	def __str__(self):
 		return '%s: limits (%dmil, %dmil), (%dmil, %dmil), drawsubsecs %d, symsubsecs %d, bussubsecs %d, netsubsecs %d' % (self.secname, self.minx, self.miny, self.maxx, self.maxy, self.drawsubsecs, self.symsubsecs, self.bussubsecs, self.netsubsecs)
 
@@ -357,6 +392,11 @@ class BoardSection(Section):
 		self.pacsubsecs = self._get_uint32(16)
 		self.netsubsecs = self._get_uint32(20)
 		self.subsec_counts = [self.defsubsecs, self.drawsubsecs, self.pacsubsecs, self.netsubsecs]
+
+	definitions = subsection_property(0, True, None)
+	drawables = subsection_property(1, True, None)
+	packages = subsection_property(2, True, None)
+	nets = subsection_property(3, True, None)
 
 	def __str__(self):
 		return '%s: limits (%dmil, %dmil), (%dmil, %dmil), defsubsecs %d, drawsubsecs %d, pacsubsecs %d, netsubsecs %d' % (self.secname, self.minx, self.miny, self.maxx, self.maxy, self.defsubsecs, self.drawsubsecs, self.pacsubsecs, self.netsubsecs)
@@ -378,6 +418,8 @@ class BoardNetSection(Section):
 		self.name = self._get_name(16, 8)
 		self.subsec_counts = [self.subsecs]
 
+	drawables = subsection_property(0, True, None)
+
 	def __str__(self):
 		return '%s %s: limits (%dmil, %dmil), (%dmil, %dmil), netclass %d, airwires %d, subsecs %d' % (self.secname, self.name, self.minx, self.miny, self.maxx, self.maxy, self.netclass, self.airwires, self.subsecs)
 
@@ -393,6 +435,8 @@ class SymbolSection(Section):
 		self._get_zero(12, 4)
 		self.name = self._get_name(16, 8)
 		self.subsec_counts = [self.subsecs]
+
+	drawables = subsection_property(0, True, None)
 
 	def __str__(self):
 		return '%s %s: limits (%dmil, %dmil), (%dmil, %dmil), subsecs %d' % (self.secname, self.name, self.minx, self.miny, self.maxx, self.maxy, self.subsecs)
@@ -410,6 +454,8 @@ class PackageSection(Section):
 		self.name = self._get_name(18, 6)
 		self.desc = self._get_name(13, 5)
 		self.subsec_counts = [self.subsecs]
+
+	drawables = subsection_property(0, True, None)
 
 	def __str__(self):
 		return '%s %s: limits (%dmil, %dmil), (%dmil, %dmil), desc %s, subsecs %d' % (self.secname, self.name, self.minx, self.miny, self.maxx, self.maxy, self.desc, self.subsecs)
@@ -431,6 +477,8 @@ class SchemaNetSection(Section):
 		self.name = self._get_name(16, 8)
 		self.subsec_counts = [self.subsecs]
 
+	paths = subsection_property(0, True, None)
+
 	def __str__(self):
 		return '%s %s: limits (%dmil, %dmil), (%dmil, %dmil), netclass %d, subsecs %s' % (self.secname, self.name, self.minx, self.miny, self.maxx, self.maxy, self.netclass, self.subsecs)
 
@@ -445,6 +493,8 @@ class PathSection(Section):
 		self.maxy = self._get_int16(10)
 		self._get_zero(12, 12)
 		self.subsec_counts = [self.subsecs]
+
+	drawables = subsection_property(0, True, None)
 
 	def __str__(self):
 		return '%s: limits (%dmil, %dmil), (%dmil, %dmil), subsecs %d' % (self.secname, self.minx, self.miny, self.maxx, self.maxy, self.subsecs)
@@ -471,6 +521,8 @@ class PolygonSection(Section):
 		# These unknown bytes seem to somehow relate to whether the polygon is currently calculated or not (they are all zero when it's not calculated)
 		self._get_unknown(20, 4)
 		self.subsec_counts = [self.subsecs]
+
+	drawables = subsection_property(0, True, None)
 
 	def __str__(self):
 		return '%s: limits (%dmil, %dmil), (%dmil, %dmil), width %f", spacing %f", isolate %f", pour %s, rank %d, thermals %d, orphans %d, layer %d, subsecs %d' % (self.secname, self.minx, self.miny, self.maxx, self.maxy, u2in(self.width_2*2), u2in(self.spacing_2*2), u2in(self.isolate_2*2), self.pour, self.rank, self.thermals, self.orphans, self.layer, self.subsecs)
@@ -753,6 +805,8 @@ class BoardPackageSection(Section):
 		self._get_unknown(20, 4)
 		self.subsec_counts = [self.subsecs]
 
+	attributes = subsection_property(0, True, None)
+
 	def __str__(self):
 		return '%s %d@%d: at (%f", %f"), angle %f, mirror %d, subsecs %d' % (self.secname, self.pacno, self.libno, u2in(self.x), u2in(self.y), 360 * self.angle / 4096., self.mirrored, self.subsecs)
 
@@ -789,6 +843,8 @@ class SchemaSymbolSection(Section):
 		self._get_unknown(20, 4)
 		self.subsec_counts = [self.subsecs]
 
+	attributes = subsection_property(0, True, None)
+
 	def __str__(self):
 		return '%s %d: at (%f", %f"), angle %f, mirror %d, smashed %d, placed %d' % (self.secname, self.symno, u2in(self.x), u2in(self.y), 360 * self.angle / 4096., self.mirrored, self.smashed, self.placed)
 
@@ -818,6 +874,8 @@ class DevicePackageSection(Section):
 		self.table = self._get_name(6, 13)
 		self.subsec_counts = [self.subsecs]
 
+	connections = subsection_property(0, True, None)
+
 	def __str__(self):
 		return '%s %d: variant %s, table %s, subsecs %d' % (self.secname, self.pacno, self.variant, self.table, self.subsecs)
 
@@ -838,6 +896,9 @@ class DeviceSection(Section):
 		self.prefix = self._get_name(8, 5)
 		self.subsec_counts = [self.pacsubsecs, self.symsubsecs]
 
+	packages = subsection_property(0, True, None)
+	symbols = subsection_property(1, True, None)
+
 	def __str__(self):
 		return '%s %s: prefix %s, desc %s, con_byte %d, pin_bits %d, value_on %d, pacsubsecs %d, symsubsecs %d' % (self.secname, self.name, self.prefix, self.desc, self.con_byte, self.pin_bits, self.value_on, self.pacsubsecs, self.symsubsecs)
 
@@ -854,6 +915,8 @@ class SchemaDeviceSection(Section):
 		self.name = self._get_name(11, 5)
 		self.subsec_counts = [self.subsecs]
 
+	symbols = subsection_property(0, True, None)
+
 	def __str__(self):
 		return '%s %d@%d, name %s, value %s, subsecs %d' % (self.secname, self.devno, self.libno, self.name, self.value, self.subsecs)
 
@@ -864,6 +927,8 @@ class SchemaBusSection(Section):
 		self.subsecs = self._get_uint16(2)
 		self.name = self._get_name(4, 20)
 		self.subsec_counts = [self.subsecs]
+
+	drawables = subsection_property(0, True, None)
 
 	def __str__(self):
 		return '%s %s: subsecs %d' % (self.secname, self.name, self.subsecs)
