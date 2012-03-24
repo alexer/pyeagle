@@ -194,18 +194,18 @@ class EagleDrawing(BaseDrawing):
 			self.draw_item(cr, item, **kwargs)
 
 	def draw_schemadevice(self, cr, schdev, **kwargs):
-		for schsym in schdev.symbols:
-			if not schsym.placed:
+		for schgat in schdev.gates:
+			if not schgat.placed:
 				continue
 			cr.save()
-			cr.translate(schsym.x, schsym.y)
-			if schsym.mirrored:
+			cr.translate(schgat.x, schgat.y)
+			if schgat.mirrored:
 				cr.scale(-1, 1)
-			cr.rotate(math.radians(360 * schsym.angle / 4096.))
+			cr.rotate(math.radians(360 * schgat.angle / 4096.))
 			lib = self.libraries[schdev.libno-1]
 			dev = lib.devices.devices[schdev.devno-1]
-			devsym = dev.symbols[schsym.symno-1]
-			sym = lib.symbols.symbols[devsym.symno-1]
+			devgat = dev.gates[schgat.gateno-1]
+			sym = lib.symbols.symbols[devgat.symno-1]
 			self.draw_symbol(cr, sym, **kwargs)
 			cr.restore()
 

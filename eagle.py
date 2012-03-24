@@ -795,9 +795,9 @@ class PinSection(Section):
 		angle = 360 * self.angle / 4096.
 		return '%s: at (%f", %f"), name %s, angle %s, direction %s, swaplevel %s, length %s, function %s, visible %s' % (self.secname, u2in(self.x), u2in(self.y), self.name, angle, dir_, self.swaplevel, len_, func, vis)
 
-class DeviceSymbolSection(Section):
+class DeviceGateSection(Section):
 	sectype = 0x2d
-	secname = 'Device/symbol'
+	secname = 'Device/gate'
 	def parse(self):
 		self._get_zero(2, 2)
 		self.x = self._get_int32(4)
@@ -809,7 +809,7 @@ class DeviceSymbolSection(Section):
 
 	def __str__(self):
 		addlevel = 'Must Can Next Request Always'.split()[self.addlevel]
-		return '%s %d: at (%f", %f"), name %s, swap %d, addlevel %s' % (self.secname, self.symno, u2in(self.x), u2in(self.y), self.name, self.swap, addlevel)
+		return '%s %s: at (%f", %f"), symbol %d, swap %d, addlevel %s' % (self.secname, self.name, u2in(self.x), u2in(self.y), self.symno, self.swap, addlevel)
 
 class BoardPackageSection(Section):
 	sectype = 0x2e
@@ -844,9 +844,9 @@ class BoardPackage2Section(Section):
 	def __str__(self):
 		return '%s: name %s, value %s' % (self.secname, self.name, self.value)
 
-class SchemaSymbolSection(Section):
+class SchemaGateSection(Section):
 	sectype = 0x30
-	secname = 'Schema/symbol'
+	secname = 'Schema/gate'
 	subsec_names = ['attributes']
 	def parse(self):
 		self.subsecs = self._get_uint16(2)
@@ -858,7 +858,7 @@ class SchemaSymbolSection(Section):
 			self.placed = placed == -1
 		else:
 			self.placed = True
-		self.symno = self._get_uint16(14)
+		self.gateno = self._get_uint16(14)
 		self.angle = self._get_uint16_mask(16, 0x0c00)
 		self.mirrored = bool(self._get_uint16_mask(16, 0x1000))
 		self._get_zero16_mask(16, 0xe3ff)
@@ -871,7 +871,7 @@ class SchemaSymbolSection(Section):
 	attributes = subsection_property(0, True, None)
 
 	def __str__(self):
-		return '%s %d: at (%f", %f"), angle %f, mirror %d, smashed %d, placed %d' % (self.secname, self.symno, u2in(self.x), u2in(self.y), 360 * self.angle / 4096., self.mirrored, self.smashed, self.placed)
+		return '%s %d: at (%f", %f"), angle %f, mirror %d, smashed %d, placed %d' % (self.secname, self.gateno, u2in(self.x), u2in(self.y), 360 * self.angle / 4096., self.mirrored, self.smashed, self.placed)
 
 class TextSection(TextBaseSection):
 	sectype = 0x31
@@ -908,9 +908,9 @@ class DeviceVariantSection(Section):
 class DeviceSection(Section):
 	sectype = 0x37
 	secname = 'Device'
-	subsec_names = ['variants', 'symbols']
+	subsec_names = ['variants', 'gates']
 	def parse(self):
-		self.symsubsecs = self._get_uint16(2)
+		self.gatsubsecs = self._get_uint16(2)
 		self.varsubsecs = self._get_uint16(4)
 		self.value_on = bool(self._get_uint8_mask(6, 0x01))
 		self._get_unknown_mask(6, 0x02)
@@ -921,18 +921,18 @@ class DeviceSection(Section):
 		self.name = self._get_name(18, 6)
 		self.desc = self._get_name(13, 5)
 		self.prefix = self._get_name(8, 5)
-		self.subsec_counts = [self.varsubsecs, self.symsubsecs]
+		self.subsec_counts = [self.varsubsecs, self.gatsubsecs]
 
 	variants = subsection_property(0, True, None)
-	symbols = subsection_property(1, True, None)
+	gates = subsection_property(1, True, None)
 
 	def __str__(self):
-		return '%s %s: prefix %s, desc %s, con_byte %d, pin_bits %d, value_on %d, varsubsecs %d, symsubsecs %d' % (self.secname, self.name, self.prefix, self.desc, self.con_byte, self.pin_bits, self.value_on, self.varsubsecs, self.symsubsecs)
+		return '%s %s: prefix %s, desc %s, con_byte %d, pin_bits %d, value_on %d, varsubsecs %d, gatsubsecs %d' % (self.secname, self.name, self.prefix, self.desc, self.con_byte, self.pin_bits, self.value_on, self.varsubsecs, self.gatsubsecs)
 
 class SchemaDeviceSection(Section):
 	sectype = 0x38
 	secname = 'Schema/device'
-	subsec_names = ['symbols']
+	subsec_names = ['gates']
 	def parse(self):
 		self.subsecs = self._get_uint16(2)
 		self.libno = self._get_uint16(4)
@@ -943,7 +943,7 @@ class SchemaDeviceSection(Section):
 		self.name = self._get_name(11, 5)
 		self.subsec_counts = [self.subsecs]
 
-	symbols = subsection_property(0, True, None)
+	gates = subsection_property(0, True, None)
 
 	def __str__(self):
 		return '%s %d@%d, variant %d, technology %d, name %s, value %s, subsecs %d' % (self.secname, self.devno, self.libno, self.varno, self.tecno, self.name, self.value, self.subsecs)
@@ -1041,8 +1041,8 @@ sections = {}
 for section in [StartSection, Unknown11Section, GridSection, LayerSection, SchemaSection, LibrarySection, DevicesSection,
 		SymbolsSection, PackagesSection, SchemaSheetSection, BoardSection, BoardNetSection, SymbolSection, PackageSection, SchemaNetSection,
 		PathSection, PolygonSection, LineSection, ElementSection, CircleSection, RectangleSection, JunctionSection,
-		HoleSection, ViaSection, PadSection, SmdSection, PinSection, DeviceSymbolSection, BoardPackageSection, BoardPackage2Section,
-		SchemaSymbolSection, TextSection, NetBusLabelSection, SmashedNameSection, SmashedValueSection, DeviceVariantSection, DeviceSection,
+		HoleSection, ViaSection, PadSection, SmdSection, PinSection, DeviceGateSection, BoardPackageSection, BoardPackage2Section,
+		SchemaGateSection, TextSection, NetBusLabelSection, SmashedNameSection, SmashedValueSection, DeviceVariantSection, DeviceSection,
 		SchemaDeviceSection, SchemaBusSection, DeviceConnectionsSection, SchemaConnectionSection, BoardConnectionSection, SmashedPartSection,
 		AttributeSection, AttributeValueSection, FrameSection]:
 	sections[section.sectype] = section
