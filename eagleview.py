@@ -228,11 +228,18 @@ class EagleDrawing(BaseDrawing):
 		# XXX: Eh...
 		self.set_color_by_layer(cr, item, **kwargs)
 		cr.save()
+		cr.translate(item.x, item.y)
+		if item.mirrored:
+			cr.scale(-1, 1)
+		cr.rotate(math.radians(360 * item.angle / 4096.))
+		cr.set_font_size(item.size_2*2)
 		fascent, fdescent, fheight, fxadvance, fyadvance = cr.font_extents()
 		xbearing, ybearing, width, height, xadvance, yadvance = cr.text_extents(item.text)
-		cr.move_to(item.x, item.y)#(-xbearing, -fascent)
+		cr.move_to(-xbearing, 0)
 		cr.scale(1, -1)
-		cr.set_font_size(item.size_2*2)
+		if not item.spin and (90 < 360 * item.angle / 4096 <= 270):
+			cr.scale(-1, -1)
+			cr.move_to(-width-xbearing, fascent)
 		cr.show_text(item.text)
 		cr.fill()
 		cr.restore()
