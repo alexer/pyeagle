@@ -938,7 +938,7 @@ class SchemaDeviceSection(Section):
 	symbols = subsection_property(0, True, None)
 
 	def __str__(self):
-		return '%s %d@%d, name %s, value %s, subsecs %d' % (self.secname, self.devno, self.libno, self.name, self.value, self.subsecs)
+		return '%s %d@%d, variant %d, name %s, value %s, subsecs %d' % (self.secname, self.devno, self.libno, self.pacno, self.name, self.value, self.subsecs)
 
 class SchemaBusSection(Section):
 	sectype = 0x3a
