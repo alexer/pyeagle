@@ -109,7 +109,7 @@ class EagleDrawing(BaseDrawing):
 			self.draw_schema(cr, item, **kwargs)
 		elif isinstance(item, eagle.BoardSection):
 			self.draw_board(cr, item, **kwargs)
-		elif isinstance(item, eagle.SchemaPartSection):
+		elif isinstance(item, eagle.PartSection):
 			self.draw_schemadevice(cr, item, **kwargs)
 		elif isinstance(item, eagle.BoardPackageSection):
 			self.draw_boardpackage(cr, item, **kwargs)
@@ -194,17 +194,17 @@ class EagleDrawing(BaseDrawing):
 			self.draw_item(cr, item, **kwargs)
 
 	def draw_schemadevice(self, cr, schdev, **kwargs):
-		for schgat in schdev.gates:
-			if not schgat.placed:
+		for schins in schdev.instances:
+			if not schins.placed:
 				continue
 			cr.save()
-			cr.translate(schgat.x, schgat.y)
-			if schgat.mirrored:
+			cr.translate(schins.x, schins.y)
+			if schins.mirrored:
 				cr.scale(-1, 1)
-			cr.rotate(math.radians(360 * schgat.angle / 4096.))
+			cr.rotate(math.radians(360 * schins.angle / 4096.))
 			lib = self.libraries[schdev.libno-1]
 			dev = lib.devices.devices[schdev.devno-1]
-			devgat = dev.gates[schgat.gateno-1]
+			devgat = dev.gates[schins.gateno-1]
 			sym = lib.symbols.symbols[devgat.symno-1]
 			self.draw_symbol(cr, sym, **kwargs)
 			cr.restore()

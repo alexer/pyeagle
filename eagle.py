@@ -795,9 +795,9 @@ class PinSection(Section):
 		angle = 360 * self.angle / 4096.
 		return '%s: at (%f", %f"), name %s, angle %s, direction %s, swaplevel %s, length %s, function %s, visible %s' % (self.secname, u2in(self.x), u2in(self.y), self.name, angle, dir_, self.swaplevel, len_, func, vis)
 
-class DeviceGateSection(Section):
+class GateSection(Section):
 	sectype = 0x2d
-	secname = 'Device/gate'
+	secname = 'Gate'
 	def parse(self):
 		self._get_zero(2, 2)
 		self.x = self._get_int32(4)
@@ -844,9 +844,9 @@ class BoardPackage2Section(Section):
 	def __str__(self):
 		return '%s: name %s, value %s' % (self.secname, self.name, self.value)
 
-class PartGateSection(Section):
+class InstanceSection(Section):
 	sectype = 0x30
-	secname = 'Part/gate'
+	secname = 'Instance'
 	subsec_names = ['attributes']
 	def parse(self):
 		self.subsecs = self._get_uint16(2)
@@ -871,7 +871,7 @@ class PartGateSection(Section):
 	attributes = subsection_property(0, True, None)
 
 	def __str__(self):
-		return '%s %d: at (%f", %f"), angle %f, mirror %d, smashed %d, placed %d' % (self.secname, self.gateno, u2in(self.x), u2in(self.y), 360 * self.angle / 4096., self.mirrored, self.smashed, self.placed)
+		return '%s: at (%f", %f"), gate %d, angle %f, mirror %d, smashed %d, placed %d' % (self.secname, u2in(self.x), u2in(self.y), self.gateno, 360 * self.angle / 4096., self.mirrored, self.smashed, self.placed)
 
 class TextSection(TextBaseSection):
 	sectype = 0x31
@@ -889,9 +889,9 @@ class SmashedValueSection(TextBaseSection):
 	sectype = 0x35
 	secname = 'Smashed value'
 
-class DeviceVariantSection(Section):
+class PackageVariantSection(Section):
 	sectype = 0x36
-	secname = 'Device/variant'
+	secname = 'Package variant'
 	subsec_names = ['connections']
 	def parse(self):
 		self.subsecs = self._get_uint16(2)
@@ -929,10 +929,10 @@ class DeviceSection(Section):
 	def __str__(self):
 		return '%s %s: prefix %s, desc %s, con_byte %d, pin_bits %d, value_on %d, varsubsecs %d, gatsubsecs %d' % (self.secname, self.name, self.prefix, self.desc, self.con_byte, self.pin_bits, self.value_on, self.varsubsecs, self.gatsubsecs)
 
-class SchemaPartSection(Section):
+class PartSection(Section):
 	sectype = 0x38
-	secname = 'Schema/part'
-	subsec_names = ['gates']
+	secname = 'Part'
+	subsec_names = ['instances']
 	def parse(self):
 		self.subsecs = self._get_uint16(2)
 		self.libno = self._get_uint16(4)
@@ -943,7 +943,7 @@ class SchemaPartSection(Section):
 		self.name = self._get_name(11, 5)
 		self.subsec_counts = [self.subsecs]
 
-	gates = subsection_property(0, True, None)
+	instances = subsection_property(0, True, None)
 
 	def __str__(self):
 		return '%s %s: library %d, device %d, variant %d, technology %d, value %s, subsecs %d' % (self.secname, self.name, self.libno, self.devno, self.varno, self.tecno, self.value, self.subsecs)
@@ -962,9 +962,9 @@ class SchemaBusSection(Section):
 	def __str__(self):
 		return '%s %s: subsecs %d' % (self.secname, self.name, self.subsecs)
 
-class DeviceConnectionsSection(Section):
+class VariantConnectionsSection(Section):
 	sectype = 0x3c
-	secname = 'Device/connections'
+	secname = 'Variant connections'
 	def parse(self):
 		fmt = '<' + ('22B' if self.parent.parent.con_byte else '11H')
 		slots = struct.unpack(fmt, self._get_bytes(2, 22))
@@ -1041,9 +1041,9 @@ sections = {}
 for section in [StartSection, Unknown11Section, GridSection, LayerSection, SchemaSection, LibrarySection, DevicesSection,
 		SymbolsSection, PackagesSection, SchemaSheetSection, BoardSection, BoardNetSection, SymbolSection, PackageSection, SchemaNetSection,
 		PathSection, PolygonSection, LineSection, ElementSection, CircleSection, RectangleSection, JunctionSection,
-		HoleSection, ViaSection, PadSection, SmdSection, PinSection, DeviceGateSection, BoardPackageSection, BoardPackage2Section,
-		PartGateSection, TextSection, NetBusLabelSection, SmashedNameSection, SmashedValueSection, DeviceVariantSection, DeviceSection,
-		SchemaPartSection, SchemaBusSection, DeviceConnectionsSection, SchemaConnectionSection, BoardConnectionSection, SmashedPartSection,
+		HoleSection, ViaSection, PadSection, SmdSection, PinSection, GateSection, BoardPackageSection, BoardPackage2Section,
+		InstanceSection, TextSection, NetBusLabelSection, SmashedNameSection, SmashedValueSection, PackageVariantSection, DeviceSection,
+		PartSection, SchemaBusSection, VariantConnectionsSection, SchemaConnectionSection, BoardConnectionSection, SmashedPartSection,
 		AttributeSection, AttributeValueSection, FrameSection]:
 	sections[section.sectype] = section
 
