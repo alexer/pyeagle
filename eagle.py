@@ -873,7 +873,8 @@ class BoardPackageSection(Section):
 		self.pacno = self._get_uint16(14)
 		self.angle = self._get_uint16_mask(16, 0x0fff)
 		self.mirrored = bool(self._get_uint16_mask(16, 0x1000))
-		self._get_zero16_mask(16, 0xe000)
+		self.spin = bool(self._get_uint16_mask(16, 0x4000))
+		self._get_zero16_mask(16, 0xa000)
 		self._get_unknown(18, 1)
 		self._get_zero(19, 1)
 		self._get_unknown(20, 4)
@@ -882,7 +883,7 @@ class BoardPackageSection(Section):
 	attributes = subsection_property(0, True, None)
 
 	def __str__(self):
-		return '%s %d@%d: at (%f", %f"), angle %f, mirror %d, subsecs %d' % (self.secname, self.pacno, self.libno, u2in(self.x), u2in(self.y), 360 * self.angle / 4096., self.mirrored, self.subsecs)
+		return '%s %d@%d: at (%f", %f"), angle %f, mirror %d, spin %d, subsecs %d' % (self.secname, self.pacno, self.libno, u2in(self.x), u2in(self.y), 360 * self.angle / 4096., self.mirrored, self.spin, self.subsecs)
 
 class BoardPackage2Section(Section):
 	sectype = 0x2f
