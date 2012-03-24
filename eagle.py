@@ -676,14 +676,18 @@ class JunctionSection(Section):
 	secname = 'Junction'
 	def parse(self):
 		self._get_zero(2, 1)
-		self._get_unknown(3, 1)
+		# Junctions are always on the "Nets" layer, and you can't change this
+		# inside of eagle, but if you give Eagle a file that has this set to some
+		# other layer, Eagle uses that layers color for rendering the junction
+		self.layer = self._get_uint8(3)
+		assert self.layer == 0x5b
 		self.x = self._get_int32(4)
 		self.y = self._get_int32(8)
 		self._get_unknown(12, 2)
 		self._get_zero(14, 10)
 
 	def __str__(self):
-		return '%s: at (%f", %f")' % (self.secname, u2in(self.x), u2in(self.y))
+		return '%s: at (%f", %f"), layer %d' % (self.secname, u2in(self.x), u2in(self.y), self.layer)
 
 class HoleSection(Section):
 	sectype = 0x28
