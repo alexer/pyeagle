@@ -935,7 +935,7 @@ class SchemaDeviceSection(Section):
 		self.libno = self._get_uint16(4)
 		self.devno = self._get_uint16(6)
 		self.pacno = self._get_uint8(8)
-		self._get_unknown(9, 2)
+		self.tecno = self._get_uint16(9)
 		self.value = self._get_name(16, 8)
 		self.name = self._get_name(11, 5)
 		self.subsec_counts = [self.subsecs]
@@ -943,7 +943,7 @@ class SchemaDeviceSection(Section):
 	symbols = subsection_property(0, True, None)
 
 	def __str__(self):
-		return '%s %d@%d, variant %d, name %s, value %s, subsecs %d' % (self.secname, self.devno, self.libno, self.pacno, self.name, self.value, self.subsecs)
+		return '%s %d@%d, variant %d, technology %d, name %s, value %s, subsecs %d' % (self.secname, self.devno, self.libno, self.pacno, self.tecno, self.name, self.value, self.subsecs)
 
 class SchemaBusSection(Section):
 	sectype = 0x3a
