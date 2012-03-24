@@ -881,6 +881,7 @@ class SmashedValueSection(TextBaseSection):
 	sectype = 0x35
 	secname = 'Smashed value'
 
+# Also known as "variant"
 class DevicePackageSection(Section):
 	sectype = 0x36
 	secname = 'Device/package'
@@ -888,14 +889,14 @@ class DevicePackageSection(Section):
 	def parse(self):
 		self.subsecs = self._get_uint16(2)
 		self.pacno = self._get_uint16(4)
-		self.variant = self._get_name(19, 5)
+		self.name = self._get_name(19, 5)
 		self.table = self._get_name(6, 13)
 		self.subsec_counts = [self.subsecs]
 
 	connections = subsection_property(0, True, None)
 
 	def __str__(self):
-		return '%s %d: variant %s, table %r, subsecs %d' % (self.secname, self.pacno, self.variant, self.table, self.subsecs)
+		return '%s %d: variant %s, table %r, subsecs %d' % (self.secname, self.pacno, self.name, self.table, self.subsecs)
 
 class DeviceSection(Section):
 	sectype = 0x37
