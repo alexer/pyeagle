@@ -23,6 +23,7 @@ in2u = lambda val: val*254*1000
 class Section:
 	sectype = None
 	secname = None
+	subsec_names = []
 	def __init__(self, eaglefile, parent, data):
 		self.eaglefile = eaglefile
 		self.parent = parent
@@ -190,6 +191,7 @@ def subsection_property(which, many = True, secname = None):
 class StartSection(Section):
 	sectype = 0x10
 	secname = 'Start'
+	subsec_names = ['settings', 'drawing']
 	def parse(self):
 		self.subsecs = self._get_uint16(2)
 		self.numsecs = self._get_uint32(4)
@@ -271,6 +273,7 @@ class LayerSection(Section):
 class SchemaSection(Section):
 	sectype = 0x14
 	secname = 'Schema'
+	subsec_names = ['attributes', 'libraries', 'sheets']
 	def parse(self):
 		self._get_unknown(2, 1)
 		self._get_zero(3, 1)
@@ -294,6 +297,7 @@ class SchemaSection(Section):
 class LibrarySection(Section):
 	sectype = 0x15
 	secname = 'Library'
+	subsec_names = ['devices', 'symbols', 'packages']
 	def parse(self):
 		self._get_zero(2, 2)
 		self.devsubsecs = self._get_uint32(4)
@@ -312,6 +316,7 @@ class LibrarySection(Section):
 class DevicesSection(Section):
 	sectype = 0x17
 	secname = 'Devices'
+	subsec_names = ['devices']
 	def parse(self):
 		self._get_zero(2, 2)
 		self.subsecs = self._get_uint32(4)
@@ -328,6 +333,7 @@ class DevicesSection(Section):
 class SymbolsSection(Section):
 	sectype = 0x18
 	secname = 'Symbols'
+	subsec_names = ['symbols']
 	def parse(self):
 		self._get_zero(2, 2)
 		self.subsecs = self._get_uint32(4)
@@ -344,6 +350,7 @@ class SymbolsSection(Section):
 class PackagesSection(Section):
 	sectype = 0x19
 	secname = 'Packages'
+	subsec_names = ['packages']
 	def parse(self):
 		self._get_zero(2, 2)
 		self.subsecs = self._get_uint32(4)
@@ -360,6 +367,7 @@ class PackagesSection(Section):
 class SchemaSheetSection(Section):
 	sectype = 0x1a
 	secname = 'Schema/sheet'
+	subsec_names = ['drawables', 'symbols', 'buses', 'nets']
 	def parse(self):
 		self.drawsubsecs = self._get_uint16(2)
 		self.minx = self._get_int16(4)
@@ -382,6 +390,7 @@ class SchemaSheetSection(Section):
 class BoardSection(Section):
 	sectype = 0x1b
 	secname = 'Board'
+	subsec_names = ['definitions', 'drawables', 'packages', 'nets']
 	def parse(self):
 		self.drawsubsecs = self._get_uint16(2)
 		self.minx = self._get_int16(4)
@@ -404,6 +413,7 @@ class BoardSection(Section):
 class BoardNetSection(Section):
 	sectype = 0x1c
 	secname = 'Board/net'
+	subsec_names = ['drawables']
 	def parse(self):
 		self.subsecs = self._get_uint16(2)
 		self.minx = self._get_int16(4)
@@ -426,6 +436,7 @@ class BoardNetSection(Section):
 class SymbolSection(Section):
 	sectype = 0x1d
 	secname = 'Symbol'
+	subsec_names = ['drawables']
 	def parse(self):
 		self.subsecs = self._get_uint16(2)
 		self.minx = self._get_int16(4)
@@ -444,6 +455,7 @@ class SymbolSection(Section):
 class PackageSection(Section):
 	sectype = 0x1e
 	secname = 'Package'
+	subsec_names = ['drawables']
 	def parse(self):
 		self.subsecs = self._get_uint16(2)
 		self.minx = self._get_int16(4)
@@ -463,6 +475,7 @@ class PackageSection(Section):
 class SchemaNetSection(Section):
 	sectype = 0x1f
 	secname = 'Schema/net'
+	subsec_names = ['paths']
 	def parse(self):
 		self.subsecs = self._get_uint16(2)
 		# Seem to always be (32767mil, 32767mil), (-32768mil, -32768mil)
@@ -485,6 +498,7 @@ class SchemaNetSection(Section):
 class PathSection(Section):
 	sectype = 0x20
 	secname = 'Path'
+	subsec_names = ['drawables']
 	def parse(self):
 		self.subsecs = self._get_uint16(2)
 		self.minx = self._get_int16(4)
@@ -502,6 +516,7 @@ class PathSection(Section):
 class PolygonSection(Section):
 	sectype = 0x21
 	secname = 'Polygon'
+	subsec_names = ['drawables']
 	def parse(self):
 		self.subsecs = self._get_uint16(2)
 		self.minx = self._get_int16(4)
@@ -791,6 +806,7 @@ class DeviceSymbolSection(Section):
 class BoardPackageSection(Section):
 	sectype = 0x2e
 	secname = 'Board/package'
+	subsec_names = ['attributes']
 	def parse(self):
 		self.subsecs = self._get_uint16(2)
 		self.x = self._get_int32(4)
@@ -823,6 +839,7 @@ class BoardPackage2Section(Section):
 class SchemaSymbolSection(Section):
 	sectype = 0x30
 	secname = 'Schema/symbol'
+	subsec_names = ['attributes']
 	def parse(self):
 		self.subsecs = self._get_uint16(2)
 		self.x = self._get_int32(4)
@@ -867,6 +884,7 @@ class SmashedValueSection(TextBaseSection):
 class DevicePackageSection(Section):
 	sectype = 0x36
 	secname = 'Device/package'
+	subsec_names = ['connections']
 	def parse(self):
 		self.subsecs = self._get_uint16(2)
 		self.pacno = self._get_uint16(4)
@@ -882,6 +900,7 @@ class DevicePackageSection(Section):
 class DeviceSection(Section):
 	sectype = 0x37
 	secname = 'Device'
+	subsec_names = ['packages', 'symbols']
 	def parse(self):
 		self.symsubsecs = self._get_uint16(2)
 		self.pacsubsecs = self._get_uint16(4)
@@ -905,6 +924,7 @@ class DeviceSection(Section):
 class SchemaDeviceSection(Section):
 	sectype = 0x38
 	secname = 'Schema/device'
+	subsec_names = ['symbols']
 	def parse(self):
 		self.subsecs = self._get_uint16(2)
 		self.libno = self._get_uint16(4)
@@ -923,6 +943,7 @@ class SchemaDeviceSection(Section):
 class SchemaBusSection(Section):
 	sectype = 0x3a
 	secname = 'Schema/bus'
+	subsec_names = ['drawables']
 	def parse(self):
 		self.subsecs = self._get_uint16(2)
 		self.name = self._get_name(4, 20)
