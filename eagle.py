@@ -895,7 +895,7 @@ class DevicePackageSection(Section):
 	connections = subsection_property(0, True, None)
 
 	def __str__(self):
-		return '%s %d: variant %s, table %s, subsecs %d' % (self.secname, self.pacno, self.variant, self.table, self.subsecs)
+		return '%s %d: variant %s, table %r, subsecs %d' % (self.secname, self.pacno, self.variant, self.table, self.subsecs)
 
 class DeviceSection(Section):
 	sectype = 0x37
