@@ -683,11 +683,15 @@ class JunctionSection(Section):
 		assert self.layer == 0x5b
 		self.x = self._get_int32(4)
 		self.y = self._get_int32(8)
-		self._get_unknown(12, 2)
+		# You can't change this inside of Eagle, and Eagle does not react to you
+		# changing this manually, but this always gets 0x13d8 (0.2") written
+		# to it, which is exactly the same as the size junctions are rendered as
+		self.width_2 = self._get_uint16(12)
+		assert self.width_2 == 0x13d8
 		self._get_zero(14, 10)
 
 	def __str__(self):
-		return '%s: at (%f", %f"), layer %d' % (self.secname, u2in(self.x), u2in(self.y), self.layer)
+		return '%s: at (%f", %f"), width %f", layer %d' % (self.secname, u2in(self.x), u2in(self.y), u2in(self.width_2*2), self.layer)
 
 class HoleSection(Section):
 	sectype = 0x28
