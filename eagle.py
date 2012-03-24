@@ -889,10 +889,9 @@ class SmashedValueSection(TextBaseSection):
 	sectype = 0x35
 	secname = 'Smashed value'
 
-# Also known as "variant"
-class DevicePackageSection(Section):
+class DeviceVariantSection(Section):
 	sectype = 0x36
-	secname = 'Device/package'
+	secname = 'Device/variant'
 	subsec_names = ['connections']
 	def parse(self):
 		self.subsecs = self._get_uint16(2)
@@ -904,15 +903,15 @@ class DevicePackageSection(Section):
 	connections = subsection_property(0, True, None)
 
 	def __str__(self):
-		return '%s %d: variant %s, table %r, subsecs %d' % (self.secname, self.pacno, self.name, self.table, self.subsecs)
+		return '%s %s: package %d, table %r, subsecs %d' % (self.secname, self.name, self.pacno, self.table, self.subsecs)
 
 class DeviceSection(Section):
 	sectype = 0x37
 	secname = 'Device'
-	subsec_names = ['packages', 'symbols']
+	subsec_names = ['variants', 'symbols']
 	def parse(self):
 		self.symsubsecs = self._get_uint16(2)
-		self.pacsubsecs = self._get_uint16(4)
+		self.varsubsecs = self._get_uint16(4)
 		self.value_on = bool(self._get_uint8_mask(6, 0x01))
 		self._get_unknown_mask(6, 0x02)
 		self._get_zero_mask(6, 0xfc)
@@ -922,13 +921,13 @@ class DeviceSection(Section):
 		self.name = self._get_name(18, 6)
 		self.desc = self._get_name(13, 5)
 		self.prefix = self._get_name(8, 5)
-		self.subsec_counts = [self.pacsubsecs, self.symsubsecs]
+		self.subsec_counts = [self.varsubsecs, self.symsubsecs]
 
-	packages = subsection_property(0, True, None)
+	variants = subsection_property(0, True, None)
 	symbols = subsection_property(1, True, None)
 
 	def __str__(self):
-		return '%s %s: prefix %s, desc %s, con_byte %d, pin_bits %d, value_on %d, pacsubsecs %d, symsubsecs %d' % (self.secname, self.name, self.prefix, self.desc, self.con_byte, self.pin_bits, self.value_on, self.pacsubsecs, self.symsubsecs)
+		return '%s %s: prefix %s, desc %s, con_byte %d, pin_bits %d, value_on %d, varsubsecs %d, symsubsecs %d' % (self.secname, self.name, self.prefix, self.desc, self.con_byte, self.pin_bits, self.value_on, self.varsubsecs, self.symsubsecs)
 
 class SchemaDeviceSection(Section):
 	sectype = 0x38
@@ -938,7 +937,7 @@ class SchemaDeviceSection(Section):
 		self.subsecs = self._get_uint16(2)
 		self.libno = self._get_uint16(4)
 		self.devno = self._get_uint16(6)
-		self.pacno = self._get_uint8(8)
+		self.varno = self._get_uint8(8)
 		self.tecno = self._get_uint16(9)
 		self.value = self._get_name(16, 8)
 		self.name = self._get_name(11, 5)
@@ -947,7 +946,7 @@ class SchemaDeviceSection(Section):
 	symbols = subsection_property(0, True, None)
 
 	def __str__(self):
-		return '%s %d@%d, variant %d, technology %d, name %s, value %s, subsecs %d' % (self.secname, self.devno, self.libno, self.pacno, self.tecno, self.name, self.value, self.subsecs)
+		return '%s %d@%d, variant %d, technology %d, name %s, value %s, subsecs %d' % (self.secname, self.devno, self.libno, self.varno, self.tecno, self.name, self.value, self.subsecs)
 
 class SchemaBusSection(Section):
 	sectype = 0x3a
@@ -1043,7 +1042,7 @@ for section in [StartSection, Unknown11Section, GridSection, LayerSection, Schem
 		SymbolsSection, PackagesSection, SchemaSheetSection, BoardSection, BoardNetSection, SymbolSection, PackageSection, SchemaNetSection,
 		PathSection, PolygonSection, LineSection, ElementSection, CircleSection, RectangleSection, JunctionSection,
 		HoleSection, ViaSection, PadSection, SmdSection, PinSection, DeviceSymbolSection, BoardPackageSection, BoardPackage2Section,
-		SchemaSymbolSection, TextSection, NetBusLabelSection, SmashedNameSection, SmashedValueSection, DevicePackageSection, DeviceSection,
+		SchemaSymbolSection, TextSection, NetBusLabelSection, SmashedNameSection, SmashedValueSection, DeviceVariantSection, DeviceSection,
 		SchemaDeviceSection, SchemaBusSection, DeviceConnectionsSection, SchemaConnectionSection, BoardConnectionSection, SmashedPartSection,
 		AttributeSection, AttributeValueSection, FrameSection]:
 	sections[section.sectype] = section
