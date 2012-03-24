@@ -283,8 +283,13 @@ class EagleDrawing(BaseDrawing):
 		cr.stroke()
 
 	def draw_rectangle(self, cr, item, **kwargs):
-		cr.rectangle(item.x1, item.y1, item.x2-item.x1, item.y2-item.y1)
+		cr.save()
+		cr.translate((item.x1+item.x2)/2., (item.y1+item.y2)/2.)
+		cr.rotate(math.radians(360 * item.angle / 4096.))
+		w, h = abs(item.x2-item.x1), abs(item.y2-item.y1)
+		cr.rectangle(-w/2., -h/2., w, h)
 		self.fill_with_pattern_by_layer(cr, item, **kwargs)
+		cr.restore()
 
 	def draw_junction(self, cr, item, **kwargs):
 		cr.set_source_rgba(*self.colors[2])
