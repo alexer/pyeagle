@@ -109,7 +109,7 @@ class EagleDrawing(BaseDrawing):
 			self.draw_schema(cr, item, **kwargs)
 		elif isinstance(item, eagle.BoardSection):
 			self.draw_board(cr, item, **kwargs)
-		elif isinstance(item, eagle.SchemaDeviceSection):
+		elif isinstance(item, eagle.SchemaPartSection):
 			self.draw_schemadevice(cr, item, **kwargs)
 		elif isinstance(item, eagle.BoardPackageSection):
 			self.draw_boardpackage(cr, item, **kwargs)
@@ -161,7 +161,7 @@ class EagleDrawing(BaseDrawing):
 		cr.restore()
 
 	def draw_schema(self, cr, sch, **kwargs):
-		for item in sch.symbols:
+		for item in sch.parts:
 			self.draw_item(cr, item, **kwargs)
 		cr.set_source_rgb(0.0, 0.0, 1.0)
 		for bus in sch.buses:

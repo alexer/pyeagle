@@ -367,25 +367,25 @@ class PackagesSection(Section):
 class SchemaSheetSection(Section):
 	sectype = 0x1a
 	secname = 'Schema/sheet'
-	subsec_names = ['drawables', 'symbols', 'buses', 'nets']
+	subsec_names = ['drawables', 'parts', 'buses', 'nets']
 	def parse(self):
 		self.drawsubsecs = self._get_uint16(2)
 		self.minx = self._get_int16(4)
 		self.miny = self._get_int16(6)
 		self.maxx = self._get_int16(8)
 		self.maxy = self._get_int16(10)
-		self.symsubsecs = self._get_uint32(12)
+		self.partsubsecs = self._get_uint32(12)
 		self.bussubsecs = self._get_uint32(16)
 		self.netsubsecs = self._get_uint32(20)
-		self.subsec_counts = [self.drawsubsecs, self.symsubsecs, self.bussubsecs, self.netsubsecs]
+		self.subsec_counts = [self.drawsubsecs, self.partsubsecs, self.bussubsecs, self.netsubsecs]
 
 	drawables = subsection_property(0, True, None)
-	symbols = subsection_property(1, True, None)
+	parts = subsection_property(1, True, None)
 	buses = subsection_property(2, True, None)
 	nets = subsection_property(3, True, None)
 
 	def __str__(self):
-		return '%s: limits (%dmil, %dmil), (%dmil, %dmil), drawsubsecs %d, symsubsecs %d, bussubsecs %d, netsubsecs %d' % (self.secname, self.minx, self.miny, self.maxx, self.maxy, self.drawsubsecs, self.symsubsecs, self.bussubsecs, self.netsubsecs)
+		return '%s: limits (%dmil, %dmil), (%dmil, %dmil), drawsubsecs %d, symsubsecs %d, bussubsecs %d, netsubsecs %d' % (self.secname, self.minx, self.miny, self.maxx, self.maxy, self.drawsubsecs, self.partsubsecs, self.bussubsecs, self.netsubsecs)
 
 class BoardSection(Section):
 	sectype = 0x1b
@@ -844,9 +844,9 @@ class BoardPackage2Section(Section):
 	def __str__(self):
 		return '%s: name %s, value %s' % (self.secname, self.name, self.value)
 
-class SchemaGateSection(Section):
+class PartGateSection(Section):
 	sectype = 0x30
-	secname = 'Schema/gate'
+	secname = 'Part/gate'
 	subsec_names = ['attributes']
 	def parse(self):
 		self.subsecs = self._get_uint16(2)
@@ -929,9 +929,9 @@ class DeviceSection(Section):
 	def __str__(self):
 		return '%s %s: prefix %s, desc %s, con_byte %d, pin_bits %d, value_on %d, varsubsecs %d, gatsubsecs %d' % (self.secname, self.name, self.prefix, self.desc, self.con_byte, self.pin_bits, self.value_on, self.varsubsecs, self.gatsubsecs)
 
-class SchemaDeviceSection(Section):
+class SchemaPartSection(Section):
 	sectype = 0x38
-	secname = 'Schema/device'
+	secname = 'Schema/part'
 	subsec_names = ['gates']
 	def parse(self):
 		self.subsecs = self._get_uint16(2)
@@ -946,7 +946,7 @@ class SchemaDeviceSection(Section):
 	gates = subsection_property(0, True, None)
 
 	def __str__(self):
-		return '%s %d@%d, variant %d, technology %d, name %s, value %s, subsecs %d' % (self.secname, self.devno, self.libno, self.varno, self.tecno, self.name, self.value, self.subsecs)
+		return '%s %s: library %d, device %d, variant %d, technology %d, value %s, subsecs %d' % (self.secname, self.name, self.libno, self.devno, self.varno, self.tecno, self.value, self.subsecs)
 
 class SchemaBusSection(Section):
 	sectype = 0x3a
@@ -1042,8 +1042,8 @@ for section in [StartSection, Unknown11Section, GridSection, LayerSection, Schem
 		SymbolsSection, PackagesSection, SchemaSheetSection, BoardSection, BoardNetSection, SymbolSection, PackageSection, SchemaNetSection,
 		PathSection, PolygonSection, LineSection, ElementSection, CircleSection, RectangleSection, JunctionSection,
 		HoleSection, ViaSection, PadSection, SmdSection, PinSection, DeviceGateSection, BoardPackageSection, BoardPackage2Section,
-		SchemaGateSection, TextSection, NetBusLabelSection, SmashedNameSection, SmashedValueSection, DeviceVariantSection, DeviceSection,
-		SchemaDeviceSection, SchemaBusSection, DeviceConnectionsSection, SchemaConnectionSection, BoardConnectionSection, SmashedPartSection,
+		PartGateSection, TextSection, NetBusLabelSection, SmashedNameSection, SmashedValueSection, DeviceVariantSection, DeviceSection,
+		SchemaPartSection, SchemaBusSection, DeviceConnectionsSection, SchemaConnectionSection, BoardConnectionSection, SmashedPartSection,
 		AttributeSection, AttributeValueSection, FrameSection]:
 	sections[section.sectype] = section
 
