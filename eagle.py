@@ -629,14 +629,64 @@ class LineSection(Section):
 			arctype = (' ' if arctype else '') + arctype
 			return 'Arc%s: %s, %s, width %f", layer %d, style %s, cap %s' % (arctype, coords, center, u2in(self.width_2*2), self.layer, self.style, self.cap)
 
-class ElementSection(Section):
+# Old arc section, used in eagle 4.x
+class ArcSection(Section):
 	sectype = 0x24
-	secname = 'Element'
+	secname = 'Arc'
 	def parse(self):
-		self._get_unknown(2, 22)
+		self._get_unknown(2, 1)
+		self.layer = self._get_uint8(3)
+		self.width_2 = self._get_uint16(20)
+		assert self._get_uint8_mask(22, 0x10), 'I thought this bit was supposed to be always set?'
+		self.clockwise = bool(self._get_uint8_mask(22, 0x20))
+		self._get_zero_mask(22, 0xcf)
+		self.arctype = self._get_uint8(23)
+
+		if self.arctype == 0x00:
+			self._get_bytes(4, 15)
+			negflags = self._get_uint8_mask(19, 0x1f)
+			self._get_zero_mask(19, 0xe0)
+			ext = ['\xff' if negflags & (1 << i) else '\x00' for i in range(5)]
+			xydata = self.data[7:16:4] + ext[0] + self.data[4:7] + ext[1] + self.data[8:11] + ext[2] + self.data[12:15] + ext[3] + self.data[16:19] + ext[4]
+			c, x1, y1, x2, y2 = struct.unpack('<iiiii', xydata)
+
+			self.x1 = x1
+			self.y1 = y1
+			self.x2 = x2
+			self.y2 = y2
+
+			x3, y3 = (x1+x2)/2., (y1+y2)/2.
+			if abs(x2-x1) < abs(y2-y1):
+				self.cx = cx = c
+				self.cy = (x3-cx)*(x2-x1)/float(y2-y1)+y3
+			else:
+				self.cy = cy = c
+				self.cx = (y3-cy)*(y2-y1)/float(x2-x1)+x3
+		else:
+			self.x1 = self._get_int32(4)
+			self.y1 = self._get_int32(8)
+			self.x2 = self._get_int32(12)
+			self.y2 = self._get_int32(16)
+			if self.arctype == 0x01:
+				self.cx = min(self.x1, self.x2)
+				self.cy = min(self.y1, self.y2)
+			elif self.arctype == 0x02:
+				self.cx = max(self.x1, self.x2)
+				self.cy = min(self.y1, self.y2)
+			elif self.arctype == 0x03:
+				self.cx = max(self.x1, self.x2)
+				self.cy = max(self.y1, self.y2)
+			elif self.arctype == 0x04:
+				self.cx = min(self.x1, self.x2)
+				self.cy = max(self.y1, self.y2)
+			elif self.arctype in (0x05, 0x06, 0x07, 0x08):
+				self.cx = (self.x1 + self.x2) / 2.
+				self.cy = (self.y1 + self.y2) / 2.
 
 	def __str__(self):
-		return self.secname
+		arctype = {0x00: '', 0x01: '90 downleft', 0x02: '90 downright', 0x03: '90 upright', 0x04: '90 upleft', 0x05: '180 left', 0x06: '180 right', 0x07: '180 down', 0x08: '180 up'}[self.arctype]
+		arctype = (' ' if arctype else '') + arctype
+		return '%s%s: from (%f", %f") to (%f", %f"), center at (%f", %f"), layer %d, width %f"' % (self.secname, arctype, u2in(self.x1), u2in(self.y1), u2in(self.x2), u2in(self.y2), u2in(self.cx), u2in(self.cy), self.layer, u2in(self.width_2*2))
 
 class CircleSection(Section):
 	sectype = 0x25
@@ -1040,7 +1090,7 @@ class FrameSection(Section):
 sections = {}
 for section in [StartSection, Unknown11Section, GridSection, LayerSection, SchemaSection, LibrarySection, DevicesSection,
 		SymbolsSection, PackagesSection, SchemaSheetSection, BoardSection, BoardNetSection, SymbolSection, PackageSection, SchemaNetSection,
-		PathSection, PolygonSection, LineSection, ElementSection, CircleSection, RectangleSection, JunctionSection,
+		PathSection, PolygonSection, LineSection, ArcSection, CircleSection, RectangleSection, JunctionSection,
 		HoleSection, ViaSection, PadSection, SmdSection, PinSection, GateSection, BoardPackageSection, BoardPackage2Section,
 		InstanceSection, TextSection, NetBusLabelSection, SmashedNameSection, SmashedValueSection, PackageVariantSection, DeviceSection,
 		PartSection, SchemaBusSection, VariantConnectionsSection, SchemaConnectionSection, BoardConnectionSection, SmashedPartSection,

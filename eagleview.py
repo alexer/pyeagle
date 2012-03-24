@@ -119,6 +119,8 @@ class EagleDrawing(BaseDrawing):
 			self.draw_package(cr, item, **kwargs)
 		elif isinstance(item, eagle.LineSection):
 			self.draw_line(cr, item, **kwargs)
+		elif isinstance(item, eagle.ArcSection):
+			self.draw_arc(cr, item, **kwargs)
 		elif isinstance(item, eagle.CircleSection):
 			self.draw_circle(cr, item, **kwargs)
 		elif isinstance(item, eagle.RectangleSection):
@@ -261,6 +263,18 @@ class EagleDrawing(BaseDrawing):
 			cr.stroke()
 		#else:
 		#	raise ValueError, 'Unknown line type: ' + hex(item.linetype)
+
+	def draw_arc(self, cr, item, **kwargs):
+		cr.save()
+		cr.set_line_cap(cairo.LINE_CAP_BUTT)
+		self.set_color_by_layer(cr, item, **kwargs)
+		r = math.sqrt((item.x1-item.cx)**2 + (item.y1-item.cy)**2)
+		start = math.atan2(item.y1-item.cy, item.x1-item.cx)
+		end = math.atan2(item.y2-item.cy, item.x2-item.cx)
+		cr.set_line_width(item.width_2*2)
+		(cr.arc if item.clockwise else cr.arc_negative)(item.cx, item.cy, r, start, end)
+		cr.stroke()
+		cr.restore()
 
 	def draw_circle(self, cr, item, **kwargs):
 		self.set_color_by_layer(cr, item, **kwargs)
