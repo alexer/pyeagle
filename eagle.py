@@ -952,13 +952,13 @@ class SchemaDeviceSection(Section):
 class SchemaBusSection(Section):
 	sectype = 0x3a
 	secname = 'Schema/bus'
-	subsec_names = ['drawables']
+	subsec_names = ['paths']
 	def parse(self):
 		self.subsecs = self._get_uint16(2)
 		self.name = self._get_name(4, 20)
 		self.subsec_counts = [self.subsecs]
 
-	drawables = subsection_property(0, True, None)
+	paths = subsection_property(0, True, None)
 
 	def __str__(self):
 		return '%s %s: subsecs %d' % (self.secname, self.name, self.subsecs)
