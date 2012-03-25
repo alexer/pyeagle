@@ -235,11 +235,12 @@ class EagleDrawing(BaseDrawing):
 		cr.set_font_size(item.size_2*2)
 		fascent, fdescent, fheight, fxadvance, fyadvance = cr.font_extents()
 		xbearing, ybearing, width, height, xadvance, yadvance = cr.text_extents(item.text)
-		cr.move_to(-xbearing, 0)
+		# We have inverted y coordinates relative to cairo, so we have to invert them here to get text rendered correctly
 		cr.scale(1, -1)
 		if not item.spin and (90 < 360 * item.angle / 4096 <= 270):
 			cr.scale(-1, -1)
-			cr.move_to(-width-xbearing, fascent)
+			cr.translate(-width, fascent)
+		cr.translate(-xbearing, 0)
 		cr.show_text(item.text)
 		cr.fill()
 		cr.restore()
