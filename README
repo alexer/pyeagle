@@ -36,13 +36,11 @@ I have no idea how the checksum calculation is done, so
 files can't currently be written. (And even if this was
 known, there is still some unknown data)
 
-The renderer does not fill polygons or render text.
-(Because filling polygons is pretty hard when you have to
-take the isolation aspects into account. Add the fact that
-you also have a minimum width to take into account, and
-you don't want to do it anymore, at all. Text rendering
-is very probably hard to do exactly like eagle, and if I
-can't have it exactly right, I don't want it at all ;)
+The renderer does not fill polygons. (Because filling polygons
+is pretty hard when you have to take the isolation aspects into
+account. Add the fact that you also have a minimum width to
+take into account, and you don't want to do it anymore, at all)
+Text rendering uses the wrong font and is disabled by default.
 Items aren't rendered in the correct order or grouped in
 any way. Thus items in bottom layer might be drawn on top
 of items in the top layer, and items in the same layer
