@@ -1054,6 +1054,10 @@ class SmashedPartSection(TextBaseSection):
 	sectype = 0x3f
 	secname = 'Smashed part'
 
+class SmashedGateSection(TextBaseSection):
+	sectype = 0x40
+	secname = 'Smashed gate'
+
 class AttributeSection(TextBaseSection):
 	sectype = 0x41
 	secname = 'Attribute'
@@ -1088,6 +1092,10 @@ class FrameSection(Section):
 		borders = ' '.join(border for border in ['bottom' if self.borders & 0x01 else None, 'right' if self.borders & 0x02 else None, 'top' if self.borders & 0x04 else None, 'left' if self.borders & 0x08 else None] if border) or 'none'
 		return '%s: from (%f", %f") to (%f", %f"), size %dx%d, layer %d, border %s' % (self.secname, u2in(self.x1), u2in(self.y1), u2in(self.x2), u2in(self.y2), self.cols, self.rows, self.layer, borders)
 
+class SmashedXrefSection(TextBaseSection):
+	sectype = 0x44
+	secname = 'Smashed xref'
+
 sections = {}
 for section in [StartSection, Unknown11Section, GridSection, LayerSection, SchemaSection, LibrarySection, DevicesSection,
 		SymbolsSection, PackagesSection, SchemaSheetSection, BoardSection, BoardNetSection, SymbolSection, PackageSection, SchemaNetSection,
@@ -1095,7 +1103,7 @@ for section in [StartSection, Unknown11Section, GridSection, LayerSection, Schem
 		HoleSection, ViaSection, PadSection, SmdSection, PinSection, GateSection, BoardPackageSection, BoardPackage2Section,
 		InstanceSection, TextSection, NetBusLabelSection, SmashedNameSection, SmashedValueSection, PackageVariantSection, DeviceSection,
 		PartSection, SchemaBusSection, VariantConnectionsSection, SchemaConnectionSection, BoardConnectionSection, SmashedPartSection,
-		AttributeSection, AttributeValueSection, FrameSection]:
+		SmashedGateSection, AttributeSection, AttributeValueSection, FrameSection, SmashedXrefSection]:
 	sections[section.sectype] = section
 
 def _cut(fmt, data, size, onlyone = False):
