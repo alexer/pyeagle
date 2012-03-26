@@ -200,64 +200,53 @@ class EagleDrawing(BaseDrawing):
 		for item in pac.drawables:
 			self.draw_item(cr, item, **kwargs)
 
-	def draw_schemadevice(self, cr, schdev, mirrored, angle, **kwargs):
+	def transform(self, cr, item, mirrored, spin, angle, **kwargs):
+		cr.translate(item.x, item.y)
+		if item.mirrored:
+			mirrored = not mirrored
+			cr.scale(-1, 1)
+		if hasattr(item, 'spin') and item.spin:
+			spin = not spin
+		angle += item.angle if not mirrored else -item.angle
+		cr.rotate(math.radians(360 * item.angle / 4096.))
+		kwargs['mirrored'] = mirrored
+		kwargs['spin'] = spin
+		kwargs['angle'] = angle
+		return kwargs
+
+	def draw_schemadevice(self, cr, schdev, **kwargs):
 		for schins in schdev.instances:
 			if not schins.placed:
 				continue
 			cr.save()
-			cr.translate(schins.x, schins.y)
-			if schins.mirrored:
-				mirrored = not mirrored
-				cr.scale(-1, 1)
-			a = schins.angle
-			if mirrored:
-				a = -a
-			cr.rotate(math.radians(360 * schins.angle / 4096.))
+			kwargs = self.transform(cr, schins, **kwargs)
 			lib = self.libraries[schdev.libno-1]
 			dev = lib.devices.devices[schdev.devno-1]
 			devgat = dev.gates[schins.gateno-1]
 			sym = lib.symbols.symbols[devgat.symno-1]
-			self.draw_symbol(cr, sym, mirrored = mirrored, angle = angle + a, **kwargs)
+			self.draw_symbol(cr, sym, **kwargs)
 			cr.restore()
 
-	def draw_boardpackage(self, cr, item, mirrored, spin, angle, **kwargs):
+	def draw_boardpackage(self, cr, item, **kwargs):
 		cr.save()
-		cr.translate(item.x, item.y)
-		if item.mirrored:
-			mirrored = not mirrored
-			cr.scale(-1, 1)
-		if item.spin:
-			spin = not spin
-		a = item.angle
-		if mirrored:
-			a = -a
-		cr.rotate(math.radians(360 * item.angle / 4096.))
+		kwargs = self.transform(cr, item, **kwargs)
 		brd = self.module
 		pacs = brd.definitions[item.libno-1]
 		pac = pacs.packages[item.pacno-1]
-		self.draw_symbol(cr, pac, mirrored = mirrored, spin = spin, angle = angle + a, **kwargs)
+		self.draw_symbol(cr, pac, **kwargs)
 		cr.restore()
 
-	def draw_text(self, cr, item, context, mirrored, spin, angle, **kwargs):
+	def draw_text(self, cr, item, **kwargs):
 		# XXX: Eh...
-		self.set_color_by_layer(cr, item, context = context, mirrored = mirrored, spin = spin, angle = angle, **kwargs)
+		self.set_color_by_layer(cr, item, **kwargs)
 		cr.save()
-		cr.translate(item.x, item.y)
-		if item.mirrored:
-			mirrored = not mirrored
-			cr.scale(-1, 1)
-		if item.spin:
-			spin = not spin
-		cr.rotate(math.radians(360 * item.angle / 4096.))
+		kwargs = self.transform(cr, item, **kwargs)
+		context, mirrored, spin, angle = kwargs['context'], kwargs['mirrored'], kwargs['spin'], kwargs['angle']
 		cr.set_font_size(item.size_2*2)
 		fascent, fdescent, fheight, fxadvance, fyadvance = cr.font_extents()
 		xbearing, ybearing, width, height, xadvance, yadvance = cr.text_extents(item.text)
 		# We have inverted y coordinates relative to cairo, so we have to invert them here to get text rendered correctly
 		cr.scale(1, -1)
-		a = item.angle
-		if mirrored:
-			a = -a
-		angle += a
 		if mirrored:
 			if context == 'schema':
 				angle = 2048 + angle
