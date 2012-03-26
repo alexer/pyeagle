@@ -56,8 +56,8 @@ class EagleDrawing(BaseDrawing):
 			maxy = max(maxy, y)
 		return (minx, miny), (maxx, maxy)
 
-	def set_color_by_layer(self, cr, item, mirrored, **kwargs):
-		layerno = item.layer if not mirrored else self.layers[item.layer].other
+	def set_color_by_layer(self, cr, item, context, mirrored, **kwargs):
+		layerno = item.layer if not mirrored or context == 'schema' else self.layers[item.layer].other
 		try:
 			color = self.colors[self.layers[layerno].color]
 		except:
@@ -102,7 +102,12 @@ class EagleDrawing(BaseDrawing):
 		cr.set_line_cap(cairo.LINE_CAP_ROUND)
 
 		#self.draw_grid(cr, self.grid)
-		self.draw_item(cr, self.module, mirrored = False)
+		context = None
+		if isinstance(item, eagle.SchemaSheetSection):
+			context = 'schema'
+		elif isinstance(item, eagle.BoardSection):
+			context = 'board'
+		self.draw_item(cr, self.module, context = context, mirrored = False, spin = False, angle = 0)
 
 	def draw_item(self, cr, item, **kwargs):
 		if isinstance(item, eagle.SchemaSheetSection):
@@ -195,51 +200,81 @@ class EagleDrawing(BaseDrawing):
 		for item in pac.drawables:
 			self.draw_item(cr, item, **kwargs)
 
-	def draw_schemadevice(self, cr, schdev, **kwargs):
+	def draw_schemadevice(self, cr, schdev, mirrored, angle, **kwargs):
 		for schins in schdev.instances:
 			if not schins.placed:
 				continue
 			cr.save()
 			cr.translate(schins.x, schins.y)
 			if schins.mirrored:
+				mirrored = not mirrored
 				cr.scale(-1, 1)
+			a = schins.angle
+			if mirrored:
+				a = -a
 			cr.rotate(math.radians(360 * schins.angle / 4096.))
 			lib = self.libraries[schdev.libno-1]
 			dev = lib.devices.devices[schdev.devno-1]
 			devgat = dev.gates[schins.gateno-1]
 			sym = lib.symbols.symbols[devgat.symno-1]
-			self.draw_symbol(cr, sym, **kwargs)
+			self.draw_symbol(cr, sym, mirrored = mirrored, angle = angle + a, **kwargs)
 			cr.restore()
 
-	def draw_boardpackage(self, cr, item, mirrored, **kwargs):
+	def draw_boardpackage(self, cr, item, mirrored, spin, angle, **kwargs):
 		cr.save()
 		cr.translate(item.x, item.y)
 		if item.mirrored:
 			mirrored = not mirrored
 			cr.scale(-1, 1)
+		if item.spin:
+			spin = not spin
+		a = item.angle
+		if mirrored:
+			a = -a
 		cr.rotate(math.radians(360 * item.angle / 4096.))
 		brd = self.module
 		pacs = brd.definitions[item.libno-1]
 		pac = pacs.packages[item.pacno-1]
-		self.draw_symbol(cr, pac, mirrored = mirrored, **kwargs)
+		self.draw_symbol(cr, pac, mirrored = mirrored, spin = spin, angle = angle + a, **kwargs)
 		cr.restore()
 
-	def draw_text(self, cr, item, **kwargs):
+	def draw_text(self, cr, item, context, mirrored, spin, angle, **kwargs):
 		# XXX: Eh...
-		self.set_color_by_layer(cr, item, **kwargs)
+		self.set_color_by_layer(cr, item, context = context, mirrored = mirrored, spin = spin, angle = angle, **kwargs)
 		cr.save()
 		cr.translate(item.x, item.y)
 		if item.mirrored:
+			mirrored = not mirrored
 			cr.scale(-1, 1)
+		if item.spin:
+			spin = not spin
 		cr.rotate(math.radians(360 * item.angle / 4096.))
 		cr.set_font_size(item.size_2*2)
 		fascent, fdescent, fheight, fxadvance, fyadvance = cr.font_extents()
 		xbearing, ybearing, width, height, xadvance, yadvance = cr.text_extents(item.text)
 		# We have inverted y coordinates relative to cairo, so we have to invert them here to get text rendered correctly
 		cr.scale(1, -1)
-		if not item.spin and (90 < 360 * item.angle / 4096 <= 270):
-			cr.scale(-1, -1)
-			cr.translate(-width, fascent)
+		a = item.angle
+		if mirrored:
+			a = -a
+		angle += a
+		if mirrored:
+			if context == 'schema':
+				angle = 2048 + angle
+				cr.scale(1, -1)
+				cr.translate(0, fascent)
+		angle %= 4096
+		if context == 'schema':
+			if (90 < 360 * angle / 4096 <= 270):
+				cr.scale(-1, -1)
+				cr.translate(-width, fascent)
+		elif not spin:
+			if not mirrored and (90 < 360 * angle / 4096 <= 270):
+				cr.scale(-1, -1)
+				cr.translate(-width, fascent)
+			if mirrored and (90 <= 360 * angle / 4096 < 270):
+				cr.scale(-1, -1)
+				cr.translate(-width, fascent)
 		cr.translate(-xbearing, 0)
 		cr.show_text(item.text)
 		cr.fill()
