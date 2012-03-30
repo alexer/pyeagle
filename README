@@ -40,7 +40,7 @@ The renderer does not fill polygons. (Because filling polygons
 is pretty hard when you have to take the isolation aspects into
 account. Add the fact that you also have a minimum width to
 take into account, and you don't want to do it anymore, at all)
-Text rendering uses the wrong font and is disabled by default.
+Text rendering does not use the correct vector font.
 Items aren't rendered in the correct order or grouped in
 any way. Thus items in bottom layer might be drawn on top
 of items in the top layer, and items in the same layer

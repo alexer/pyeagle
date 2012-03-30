@@ -139,8 +139,7 @@ class EagleDrawing(BaseDrawing):
 		elif isinstance(item, eagle.SmdSection):
 			self.draw_smd(cr, item, **kwargs)
 		elif isinstance(item, eagle.TextBaseSection):
-			pass
-			#self.draw_text(cr, item, **kwargs)
+			self.draw_text(cr, item, **kwargs)
 		elif isinstance(item, eagle.JunctionSection):
 			self.draw_junction(cr, item, **kwargs)
 		elif isinstance(item, eagle.PolygonSection):
